@@ -111,7 +111,7 @@
       },
 	  {
         "name": "ChatGPT"
-      },
+      }
     ],
 	"translators": [
         {
@@ -145,6 +145,11 @@
           "de": "Kontrollbefehl als ID senden",
           "nl": "Opdracht als ID versturen"
         },
+		"titleFormatted": {
+          "en": "Send command with ID [[command]]",
+          "de": "Befehl mit ID [[command]] senden",
+          "nl": "Stuur commando met ID [[command]]"
+        },
         "hint": {
           "en": "For supported Command ID's please look at http://enigma2.carp3-noctem.eu",
           "de": "Für unterstützte ID's bitte unter http://enigma2.carp3-noctem.eu schauen",
@@ -169,6 +174,11 @@
           "en": "send message",
           "de": "Nachricht versenden",
           "nl": "Bericht verstuurd"
+        },
+		"titleFormatted": {
+          "en": "Send message with text [[msg_text_full]]",
+          "de": "Nachricht mit Text [[msg_text_full]] senden",
+          "nl": "Stuur bericht met tekst [[msg_text_full]]"
         },
         "hint": {
           "en": "Message needs the following format: \n\nType|Timeout|Text \n\nTypes: \n0 = YES / NO question \n1 = Info \n2 = MESSAGE \n3 = ATTENTION \nTimeout = Seconds or 0 for endless display \nMessage = Your Text",
@@ -239,6 +249,11 @@
           "en": "set Volume to (0-100)",
           "de": "Lautstärke festlegen (0-100)",
           "nl": "Volume instellen (0-100)"
+        },
+		"titleFormatted": {
+          "en": "Set volume to [[volume]]",
+          "de": "Lautstärke auf [[volume]] setzen",
+          "nl": "Zet volume op [[volume]]"
         },
         "args": [
           {
