@@ -81,6 +81,11 @@ Due to limited access to all enigma2 enabled devices, i was only able to test th
 
 ## Changelog
 
+## Version 1.0.5
+- new author (developer Noob with ChatGPT help)
+- SDK3 rewrite
+- added support for user name and password
+
 ## Version 1.0.3
 
 - Typo & Text Correction
