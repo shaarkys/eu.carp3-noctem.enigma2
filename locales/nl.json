@@ -7,6 +7,8 @@
         "config": "Configuratie Data:",
         "ip": "IP Adres: ",
         "port": "Poort: ",
+		"username": "Gebruikersnaam: ",
+        "password": "Wachtwoord: ",
         "button": "Sla de configuratie op",
         "restart": "Voer de app opnieuw uit na het opslaan van een nieuwe configuratie!",
         "obtain_info_header": "Verkrijg de benodigde informatie:",

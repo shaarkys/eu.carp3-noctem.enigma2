@@ -1,3 +1,6 @@
 .gitignore
 .homeyignore
 receiver.svg
+
+# Added by Homey CLI
+/.homeybuild/

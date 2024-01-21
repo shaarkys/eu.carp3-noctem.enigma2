@@ -23,6 +23,20 @@
                 <td style="width: 1%"></td>
                 <td style="width: 40%; text-align:left"><input id="enigma2_port" type="text" value="80" /></td>
                 <td style="width: 30%">&nbsp;</td>
+			<tr>
+				<td style="width: 9%">&nbsp;</td>
+				<td style="width: 20%; text-align:right"><label for="enigma2_username" data-i18n="settings.username"></label></td>
+				<td style="width: 1%"></td>
+				<td style="width: 40%; text-align:left"><input id="enigma2_username" type="text" value="" /></td>
+				<td style="width: 30%">&nbsp;</td>
+			</tr>
+			<tr>
+				<td style="width: 9%">&nbsp;</td>
+				<td style="width: 20%; text-align:right"><label for="enigma2_password" data-i18n="settings.password"></label></td>
+				<td style="width: 1%"></td>
+				<td style="width: 40%; text-align:left"><input id="enigma2_password" type="password" value="" /></td>
+				<td style="width: 30%">&nbsp;</td>
+			</tr>
             </tr>
             <tr>
                 <td style="width: 9%">&nbsp;</td>
@@ -41,41 +55,53 @@
         </table>
         <p data-i18n="settings.restart"></p>
     </fieldset>
-        <script type="text/javascript">
+		<script type="text/javascript">
+		function onHomeyReady( Homey ){
+			Homey.ready();
 
-        // a method named 'onHomeyReady' must be present in your code
-        function onHomeyReady( Homey ){
+			var enigma2_ipElement = document.getElementById('enigma2_ip');
+			var enigma2_portElement = document.getElementById('enigma2_port');
+			var enigma2_usernameElement = document.getElementById('enigma2_username');
+			var enigma2_passwordElement = document.getElementById('enigma2_password');
+			var saveElement = document.getElementById('save');
 
-            // Tell Homey we're ready to be displayed
-            Homey.ready();
+			// Get existing settings and populate the fields
+			Homey.get('enigma2_ip', function( err, enigma2_ip ) {
+			   if( err ) return Homey.alert( err );
+			   enigma2_ipElement.value = enigma2_ip;
+			});
 
-            var enigma2_ipElement = document.getElementById('enigma2_ip');
-            var enigma2_portElement = document.getElementById('enigma2_port');
-            var saveElement = document.getElementById('save');
+			Homey.get('enigma2_port', function( err, enigma2_port ) {
+			   if( err ) return Homey.alert( err );
+			   enigma2_portElement.value = enigma2_port;
+			});
 
-            Homey.get('enigma2_ip', function( err, enigma2_ip ) {
-               if( err ) return Homey.alert( err );
-               enigma2_ipElement.value = enigma2_ip;
-            });
+			Homey.get('enigma2_username', function( err, enigma2_username ) {
+			   if( err ) return Homey.alert( err );
+			   enigma2_usernameElement.value = enigma2_username;
+			});
 
-            Homey.get('enigma2_port', function( err, enigma2_port ) {
-               if( err ) return Homey.alert( err );
-               enigma2_portElement.value = enigma2_port;
-            });
+			Homey.get('enigma2_password', function( err, enigma2_password ) {
+			   if( err ) return Homey.alert( err );
+			   enigma2_passwordElement.value = enigma2_password;
+			});
 
-            saveElement.addEventListener('click', function(e) {
-
-                Homey.set('enigma2_ip', enigma2_ipElement.value, function( err ){
-                    if( err ) return Homey.alert( err );
-                });
-                Homey.set('enigma2_port', enigma2_portElement.value, function( err ){
-                    if( err ) return Homey.alert( err );
-                });
-
-            });
-        }
-        </script>
-
+			saveElement.addEventListener('click', function(e) {
+				Homey.set('enigma2_ip', enigma2_ipElement.value, function( err ){
+					if( err ) return Homey.alert( err );
+				});
+				Homey.set('enigma2_port', enigma2_portElement.value, function( err ){
+					if( err ) return Homey.alert( err );
+				});
+				Homey.set('enigma2_username', enigma2_usernameElement.value, function( err ){
+					if( err ) return Homey.alert( err );
+				});
+				Homey.set('enigma2_password', enigma2_passwordElement.value, function( err ){
+					if( err ) return Homey.alert( err );
+				});
+			});
+		}
+		</script>
     </br>
     </br>
     </br>
