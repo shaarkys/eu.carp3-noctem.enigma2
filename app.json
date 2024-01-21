@@ -6,7 +6,7 @@
   "description": {
     "en": "Connect your Homey with enigma2 Receivers"
   },
-  "version": "1.0.3",
+  "version": "1.0.5",
   "brandColor": "#E3B30B",
   "homeyCommunityTopicId": 9427,
   "sdk": 3,
@@ -101,12 +101,19 @@
     ]
   },
   "author": {
-    "name": "Markus Mahr",
-    "email": "app@carp3-noctem.eu",
-    "website": "http://carp3-noctem.eu"
+    "name": "Bretislav Kubesa",
+    "website": "https://github.com/shaarkys"
   },
   "contributors": {
-    "translators": [
+        "developers": [
+      {
+        "name": "Markus Mahr"
+      },
+	  {
+        "name": "ChatGPT"
+      },
+    ],
+	"translators": [
         {
             "name": "🇳🇱 - Martin Timmermans"
         }
@@ -115,7 +122,7 @@
   "contributing": {
     "donate": {
       "paypal": {
-        "username": "carp3noctem"
+        "username": "bkubesa"
       }
     }
   },
@@ -124,7 +131,7 @@
     "small": "/assets/images/small.png"
   },
   "bugs": {
-    "url": "https://github.com/carp3-noctem/eu.carp3-noctem.enigma2/issues"
+    "url": "https://github.com/shaarkys/eu.carp3-noctem.enigma2/issues"
   },
   "dependencies": {
      "axios": "^0.27.2" 
