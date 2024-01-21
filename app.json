@@ -9,8 +9,8 @@
   "version": "1.0.3",
   "brandColor": "#E3B30B",
   "homeyCommunityTopicId": 9427,
-  "sdk": 2,
-  "compatibility": ">=1.5.13",
+  "sdk": 3,
+  "compatibility": ">=5.0.0",
   "category": [
     "video"
   ],
@@ -127,7 +127,7 @@
     "url": "https://github.com/carp3-noctem/eu.carp3-noctem.enigma2/issues"
   },
   "dependencies": {
-    "request": "^2.81.0"
+     "axios": "^0.27.2" 
   },
   "flow": {
     "actions": [

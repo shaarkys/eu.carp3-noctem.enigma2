@@ -7,6 +7,8 @@
         "config": "Konfigurations Daten:",
         "ip": "IP-Adresse: ",
         "port": "Port: ",
+        "username": "Benutzername: ",
+        "password": "Passwort: ",
         "button": "Konfiguration speichern",
         "restart":"Bitte die App nach dem speichern neu starten!",
         "obtain_info_header": "Wie kommt man an die benötigten Informationen:",
