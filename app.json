@@ -6,7 +6,7 @@
   "description": {
     "en": "Connect your Homey with enigma2 Receivers"
   },
-  "version": "1.0.5",
+  "version": "1.0.6",
   "brandColor": "#E3B30B",
   "homeyCommunityTopicId": 9427,
   "sdk": 3,
@@ -137,7 +137,17 @@
      "axios": "^0.27.2" 
   },
   "flow": {
-    "actions": [
+     "conditions": [
+    {
+      "id": "is_standby_on",
+      "title": {
+        "en": "!{{is|is not}} in standby mode",
+		"de": "!{{ist|ist nicht}} im Standby-Modus",
+        "nl": "!{{is|is niet}} in stand-by modus"
+      }
+    }
+  ],
+	"actions": [
       {
         "id": "command_send",
         "title": {
