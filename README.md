@@ -16,10 +16,7 @@ This Project allows Control of Enigma2 devices via [Homey](https://www.athom.com
 
 ### and / condition flowcards
 
-- [ ] Power is ON
-- [ ] Power is OFF
-- [ ] Radio mode is used
-- [ ] TV mode is used
+- [x] Standby ON/OFF
 - [ ] ...to be continued if you have ideas, visit [Athom Community](https://community.athom.com/t/enigma2-dvb-boxes-support/9427) and let me know
 
 ### then / action flowcards
@@ -80,6 +77,10 @@ Due to limited access to all enigma2 enabled devices, i was only able to test th
 3. Pictures of the Remotes can be found here: [OpenWebif Remote Pictures](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif/tree/master/plugin/public/images/remotes)
 
 ## Changelog
+
+## Version 1.0.6
+
+- Standby/Wake flow condition check implemented
 
 ## Version 1.0.5
 - new author (developer Noob with ChatGPT help)

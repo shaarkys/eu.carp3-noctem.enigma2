@@ -77,6 +77,9 @@ class Enigma2 extends Homey.App {
 
         // Volume Unmute Action
         this.registerFlowCardAction('vol_unmute', () => 'vol?set=unmute');
+		
+		// Checking state of Enigma2
+		this.registerConditionFlowCard('is_standby_on');
     }
 
     registerFlowCardAction(cardName, getCallSpec) {
@@ -87,6 +90,51 @@ class Enigma2 extends Homey.App {
             return true;
         });
     }
+	
+		async checkStandbyState() {
+			try {
+				const config = {
+					url: `http://${this.enigma2_host}/web/powerstate`,
+					method: 'get'
+				};
+
+				// Add authentication if username and password are provided
+				if (this.enigma2_username && this.enigma2_password) {
+					config.auth = {
+						username: this.enigma2_username,
+						password: this.enigma2_password
+					};
+				}
+
+				const response = await axios(config);
+				const powerState = response.data;
+				this.log('Enigma2 power state response:', powerState);
+
+				// Use regular expression to extract standby state
+				const match = powerState.match(/<e2instandby>\s*(.*?)\s*<\/e2instandby>/);
+				const isStandby = match && match[1] === 'true';
+
+				if (isStandby) {
+					this.log('Enigma2 is currently in standby mode.');
+				} else {
+					this.log('Enigma2 is currently active (not in standby mode).');
+				}
+
+				return isStandby;
+			} catch (error) {
+				this.error('Error checking standby state:', error);
+				return false;
+			}
+		}
+
+
+	registerConditionFlowCard(cardName) {
+			const conditionCard = this.homey.flow.getConditionCard(cardName);
+			conditionCard.registerRunListener(async (args) => {
+				const isStandby = await this.checkStandbyState();
+				return (cardName === 'is_standby_on') ? isStandby : !isStandby;
+			});
+		}
 }
 
 module.exports = Enigma2;
