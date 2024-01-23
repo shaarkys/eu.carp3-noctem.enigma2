@@ -6,7 +6,7 @@
   "description": {
     "en": "Connect your Homey with enigma2 Receivers"
   },
-  "version": "1.0.6",
+  "version": "1.1.0",
   "brandColor": "#E3B30B",
   "homeyCommunityTopicId": 9427,
   "sdk": 3,
@@ -105,18 +105,18 @@
     "website": "https://github.com/shaarkys"
   },
   "contributors": {
-        "developers": [
+    "developers": [
       {
         "name": "Markus Mahr"
       },
-	  {
+      {
         "name": "ChatGPT"
       }
     ],
-	"translators": [
-        {
-            "name": "🇳🇱 - Martin Timmermans"
-        }
+    "translators": [
+      {
+        "name": "🇳🇱 - Martin Timmermans"
+      }
     ]
   },
   "contributing": {
@@ -134,20 +134,20 @@
     "url": "https://github.com/shaarkys/eu.carp3-noctem.enigma2/issues"
   },
   "dependencies": {
-     "axios": "^0.27.2" 
+    "axios": "^0.27.2"
   },
   "flow": {
-     "conditions": [
-    {
-      "id": "is_standby_on",
-      "title": {
-        "en": "!{{is|is not}} in standby mode",
-		"de": "!{{ist|ist nicht}} im Standby-Modus",
-        "nl": "!{{is|is niet}} in stand-by modus"
+    "conditions": [
+      {
+        "id": "is_standby_on",
+        "title": {
+          "en": "!{{is|is not}} in standby mode",
+          "de": "!{{ist|ist nicht}} im Standby-Modus",
+          "nl": "!{{is|is niet}} in stand-by modus"
+        }
       }
-    }
-  ],
-	"actions": [
+    ],
+    "actions": [
       {
         "id": "command_send",
         "title": {
@@ -155,7 +155,7 @@
           "de": "Kontrollbefehl als ID senden",
           "nl": "Opdracht als ID versturen"
         },
-		"titleFormatted": {
+        "titleFormatted": {
           "en": "Send command with ID [[command]]",
           "de": "Befehl mit ID [[command]] senden",
           "nl": "Stuur commando met ID [[command]]"
@@ -185,7 +185,7 @@
           "de": "Nachricht versenden",
           "nl": "Bericht verstuurd"
         },
-		"titleFormatted": {
+        "titleFormatted": {
           "en": "Send message with text [[msg_text_full]]",
           "de": "Nachricht mit Text [[msg_text_full]] senden",
           "nl": "Stuur bericht met tekst [[msg_text_full]]"
@@ -204,7 +204,6 @@
               "de": "Nachrichten Text",
               "nl": "Bericht tekst"
             }
-          
           }
         ]
       },
@@ -260,7 +259,7 @@
           "de": "Lautstärke festlegen (0-100)",
           "nl": "Volume instellen (0-100)"
         },
-		"titleFormatted": {
+        "titleFormatted": {
           "en": "Set volume to [[volume]]",
           "de": "Lautstärke auf [[volume]] setzen",
           "nl": "Zet volume op [[volume]]"
