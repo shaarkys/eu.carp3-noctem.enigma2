@@ -1,0 +1,29 @@
+{
+  "id": "message_send",
+  "title": {
+    "en": "send message",
+    "de": "Nachricht versenden",
+    "nl": "Bericht verstuurd"
+  },
+  "titleFormatted": {
+    "en": "Send message with text [[msg_text_full]]",
+    "de": "Nachricht mit Text [[msg_text_full]] senden",
+    "nl": "Stuur bericht met tekst [[msg_text_full]]"
+  },
+  "hint": {
+    "en": "Message needs the following format: \n\nType|Timeout|Text \n\nTypes: \n0 = YES / NO question \n1 = Info \n2 = MESSAGE \n3 = ATTENTION \nTimeout = Seconds or 0 for endless display \nMessage = Your Text",
+    "de": "Nachrichten müssen im folgenden Format eingegeben werden: \n\nTyp|Anzeigezeit|Text \n\nTyp: \n0 = Ja / Nein Frage \n1 = Information \n2 = Nachricht \n 3 = Warnung \nAnzeigezeit = Sekunden oder 0 für dauerhaft \nMessage = Nachrichtentext",
+    "nl": "Berichten dienen in het volgende formaat te zijn: \n\nType|Timeout|Tekst \n\nTypen: \n0 = JA / NEE vraag \n1 = Info \n2 = BERICHT \n3 = WAARSCHUWING \nTimeout = Seconden or 0 voor oneindige weergave \nMessage = Je tekst"
+  },
+  "args": [
+    {
+      "name": "msg_text_full",
+      "type": "text",
+      "placeholder": {
+        "en": "Message Text",
+        "de": "Nachrichten Text",
+        "nl": "Bericht tekst"
+      }
+    }
+  ]
+}

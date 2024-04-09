@@ -1,0 +1,129 @@
+<style>
+    .pairSettings input {
+        margin-top: 10px;
+        /* Adds space above each input field */
+    }
+
+    .pairSettings td:first-child {
+        padding-right: 10px;
+        /* Adds space between label and input field */
+    }
+</style>
+
+<script>
+    Homey.setTitle(__('pair.start.title'));
+
+    Homey.on('error', function (errortype, callback) {
+        let errorMessage;
+
+        switch (errortype) {
+            case 'error':
+                errorMessage = __('pair.start.error');
+                break;
+            case 'nosettings':
+                errorMessage = __('pair.start.nosettings');
+                break;
+            case 'session_not_found': // Add a case for 'session_not_found' or similar if relevant
+                errorMessage = __('pair.start.session_not_found');
+                break;
+            default:
+                errorMessage = __('pair.start.unknown_error');
+                break;
+        }
+
+        if (errorMessage) {
+            Homey.alert(errorMessage, 'error');
+            Homey.done();
+        }
+    });
+
+    function saveSettings() {
+        var data = getFormData();
+        if (!validateFormData(data)) {
+            return;
+        }
+        console.log("Sending data to backend:", data); // Log data before sending
+        Homey.emit('get_devices', data);
+        Homey.showView('get_devices');
+    }
+
+    function testConnection() {
+        var data = getFormData();
+        if (!validateFormData(data)) {
+            return;
+        }
+
+        console.log("Testing connection with data:", data); // Log data before testing
+
+        Homey.emit('test_connection', data, function (err, result) {
+            if (err) {
+                Homey.alert(__('pair.start.connection_failed'), 'error');
+            } else {
+                Homey.alert(__('pair.start.connection_success'), 'info'); // Assuming you have this key in your locales
+            }
+        });
+    }
+
+    function getFormData() {
+
+        console.log("Retrieving form data..."); // Log data retrieval
+
+        var inputIpAddress = document.getElementById('IPAddress').value;
+        var inputPort = document.getElementById('Port').value;
+        var inputUsername = document.getElementById('Username').value;
+        var inputPassword = document.getElementById('Password').value;
+
+        // Create an object to store data
+        var data = {
+            IPAddress: inputIpAddress,
+            Port: inputPort,
+            Username: inputUsername,
+            Password: inputPassword
+        };
+        console.log("Retrieved form data : ", data); // Log data retrieval
+        return data;
+    }
+
+    function validateFormData(data) {
+        console.log("Validating form data:"); // Log data for validation
+        var ipValid = /^([0-9]{1,3}\.){3}[0-9]{1,3}$/.test(data.IPAddress);
+        var portValid = /^[0-9]+$/.test(data.Port) && parseInt(data.Port, 10) > 0 && parseInt(data.Port, 10) < 65536;
+
+        if (!ipValid || !portValid) {
+            Homey.alert(__('pair.start.invalidInput'), 'error');
+            console.log("Data invalid"); // Log data retrieval
+            return false;
+        }
+        return true;
+    }
+
+</script>
+
+<div>
+    <p data-i18n="pair.start.intro"></p>
+    <table class="pairSettings">
+        <tr>
+            <td><span data-i18n="pair.start.ipAddress"></span></td>
+            <td><input id="IPAddress" type="text" placeholder="192.168.1.10" /></td>
+        </tr>
+        <tr>
+            <td><span data-i18n="pair.start.port"></span></td>
+            <td><input id="Port" type="text" placeholder="80" /></td>
+        </tr>
+        <tr>
+            <td><span data-i18n="pair.start.username"></span></td>
+            <td><input id="Username" type="text" /></td>
+        </tr>
+        <tr>
+            <td><span data-i18n="pair.start.password"></span></td>
+            <td><input id="Password" type="password" /></td>
+        </tr>
+    </table>
+    <fieldset style="text-align: center;">
+        <button class="homey-button-small" onclick="testConnection()" style="margin-right: 10px;"><span
+                data-i18n="pair.start.testConnection"></span></button>
+        <button class="homey-button-small" id="saveSettings" onclick="saveSettings()"><span
+                data-i18n="pair.start.saveSettings"></span></button>
+    </fieldset>
+
+</div>

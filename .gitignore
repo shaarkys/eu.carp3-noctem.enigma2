@@ -1,6 +1,9 @@
 .gitignore
 .homeyignore
 receiver.svg
+node_modules/*
 
 # Added by Homey CLI
 /.homeybuild/
+ChatGPT_feed.ps1
+chatgpt_input.txt

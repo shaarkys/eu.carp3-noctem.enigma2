@@ -1,0 +1,27 @@
+{
+  "id": "vol_set",
+  "title": {
+    "en": "set Volume to (0-100)",
+    "de": "Lautstärke festlegen (0-100)",
+    "nl": "Volume instellen (0-100)"
+  },
+  "titleFormatted": {
+    "en": "Set volume to [[volume]]",
+    "de": "Lautstärke auf [[volume]] setzen",
+    "nl": "Zet volume op [[volume]]"
+  },
+  "args": [
+    {
+      "name": "volume",
+      "type": "number",
+      "min": 0,
+      "max": 100,
+      "step": 1,
+      "placeholder": {
+        "en": "Volume set (0% - 100%)",
+        "de": "Lautstärke festlegen (0% - 100%)",
+        "nl": "Volume instellen (0% - 100%)"
+      }
+    }
+  ]
+}

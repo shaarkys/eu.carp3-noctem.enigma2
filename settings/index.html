@@ -2,6 +2,7 @@
 <html>
 <head>
         <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
+		<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
    <h1><p style="color: #c00; font-weight: bold; text-align: center" data-i18n="settings.header"></p></h1>
@@ -45,13 +46,23 @@
                 <td style="width: 40%">&nbsp;</td>
                 <td style="width: 30%">&nbsp;</td>
             </tr>
-            <tr>
-                <td style="width: 9%">&nbsp;</td>
-                <td style="width: 20%">&nbsp;</td>
-                <td style="width: 1%"></td>
-                <td style="width: 40%"><button id="save" class="right" data-i18n="settings.button"></button></td>
-                <td style="width: 30%">&nbsp;</td>
-            </tr>
+                       <!-- Test Connection Button Row -->
+					   <tr>
+						<td style="width: 9%">&nbsp;</td>
+						<td colspan="3" style="text-align: center;">
+							<button id="test" class="right" data-i18n="settings.testConnection">Test Connection</button>
+						</td>
+						<td style="width: 30%">&nbsp;</td>
+					</tr>
+		
+					<!-- Save Button Row -->
+					<tr>
+						<td style="width: 9%">&nbsp;</td>
+						<td colspan="3" style="text-align: center;">
+							<button id="save" class="right" data-i18n="settings.button">Save Configuration</button>
+						</td>
+						<td style="width: 30%">&nbsp;</td>
+					</tr>
         </table>
         <p data-i18n="settings.restart"></p>
     </fieldset>
@@ -64,7 +75,11 @@
 			var enigma2_usernameElement = document.getElementById('enigma2_username');
 			var enigma2_passwordElement = document.getElementById('enigma2_password');
 			var saveElement = document.getElementById('save');
+			var testElement = document.getElementById('test');
 
+			//document.getElementById('save').disabled = true; // Disable save button initially
+			
+			console.log('Obtaining connection settings...');
 			// Get existing settings and populate the fields
 			Homey.get('enigma2_ip', function( err, enigma2_ip ) {
 			   if( err ) return Homey.alert( err );
@@ -87,6 +102,7 @@
 			});
 
 			saveElement.addEventListener('click', function(e) {
+				console.log('Saving connection settings...');
 				Homey.set('enigma2_ip', enigma2_ipElement.value, function( err ){
 					if( err ) return Homey.alert( err );
 				});
@@ -100,6 +116,38 @@
 					if( err ) return Homey.alert( err );
 				});
 			});
+			       	
+            testElement.addEventListener('click', function() {
+				
+                var ipAddress = document.getElementById('enigma2_ip').value;
+                var port = document.getElementById('enigma2_port').value;
+                var username = document.getElementById('enigma2_username').value;
+                var password = document.getElementById('enigma2_password').value;
+
+                // Construct the URL for testing
+                var testUrl = `http://${ipAddress}:${port}/web/powerstate`;
+                var config = {
+                    method: 'get',
+                    url: testUrl
+                };
+				
+                // Add authentication if provided
+                if (username && password) {
+                    config.auth = { username: username, password: password };
+                }
+				console.log('Testing connection...');
+                // Perform the test request
+                axios(config).then(function (response) {
+                    console.log('Connection succesfull...');
+					Homey.alert("Connection successful " + response, "info");
+                    document.getElementById('save').disabled = false; // Enable save button on success
+                }).catch(function (error) {
+					console.log('Connection FAILED...');
+                    Homey.alert("Connection failed " + error, "error");
+                    document.getElementById('save').disabled = true; // Keep save button disabled on failure
+                });
+            });
+		
 		}
 		</script>
     </br>
