@@ -1,0 +1,233 @@
+{
+  "id": "eu.carp3-noctem.enigma2",
+  "name": {
+    "en": "enigma2"
+  },
+  "description": {
+    "en": "Connect your Homey with enigma2 Receivers"
+  },
+  "version": "1.1.2",
+  "brandColor": "#E3B30B",
+  "homeyCommunityTopicId": 9427,
+  "sdk": 3,
+  "compatibility": ">=5.0.0",
+  "category": [
+    "video"
+  ],
+  "tags": {
+    "en": [
+      "enigma2",
+      "DVB",
+      "DVB-S2",
+      "Receiver",
+      "AB-COM",
+      "IPBOX",
+      "PRISMCUBE",
+      "ANADOL",
+      "AX TECHNOLOGY",
+      "AX",
+      "DREAMBOX",
+      "DREAMMULTIMEDIA",
+      "EDISON",
+      "FORMULER",
+      "GIGABLUE",
+      "MEDI@LINK",
+      "OCTAGON",
+      "OPTICUM",
+      "PROTEK",
+      "RED EAGLE",
+      "REDLINE",
+      "SPYCAT",
+      "VU+",
+      "ENIGMA",
+      "LINUX",
+      "VERU"
+    ],
+    "nl": [
+      "enigma2",
+      "DVB",
+      "DVB-S2",
+      "Receiver",
+      "AB-COM",
+      "IPBOX",
+      "PRISMCUBE",
+      "ANADOL",
+      "AX TECHNOLOGY",
+      "AX",
+      "DREAMBOX",
+      "DREAMMULTIMEDIA",
+      "EDISON",
+      "FORMULER",
+      "GIGABLUE",
+      "MEDI@LINK",
+      "OCTAGON",
+      "OPTICUM",
+      "PROTEK",
+      "RED EAGLE",
+      "REDLINE",
+      "SPYCAT",
+      "VU+",
+      "ENIGMA",
+      "LINUX",
+      "VERU"
+    ],
+    "de": [
+      "enigma2",
+      "DVB",
+      "DVB-S2",
+      "Receiver",
+      "AB-COM",
+      "IPBOX",
+      "PRISMCUBE",
+      "ANADOL",
+      "AX TECHNOLOGY",
+      "AX",
+      "DREAMBOX",
+      "DREAMMULTIMEDIA",
+      "EDISON",
+      "FORMULER",
+      "GIGABLUE",
+      "MEDI@LINK",
+      "OCTAGON",
+      "OPTICUM",
+      "PROTEK",
+      "RED EAGLE",
+      "REDLINE",
+      "SPYCAT",
+      "VU+",
+      "ENIGMA",
+      "LINUX",
+      "VERU"
+    ]
+  },
+  "author": {
+    "name": "Bretislav Kubesa",
+    "website": "https://github.com/shaarkys"
+  },
+  "contributors": {
+    "developers": [
+      {
+        "name": "Markus Mahr"
+      },
+      {
+        "name": "ChatGPT"
+      }
+    ],
+    "translators": [
+      {
+        "name": "🇳🇱 - Martin Timmermans"
+      }
+    ]
+  },
+  "contributing": {
+    "donate": {
+      "paypal": {
+        "username": "bkubesa"
+      }
+    }
+  },
+  "images": {
+    "large": "/assets/images/large.png",
+    "small": "/assets/images/small.png"
+  },
+  "bugs": {
+    "url": "https://github.com/shaarkys/eu.carp3-noctem.enigma2/issues"
+  },
+  "dependencies": {
+    "axios": "^0.27.2"
+  },
+  "drivers": [
+    {
+      "id": "enigma2",
+      "name": {
+        "en": "Enigma2 Receiver"
+      },
+      "class": "tv",
+      "capabilities": [
+        "speaker_artist",
+        "speaker_album",
+        "speaker_track",
+        "channel_down",
+        "channel_up",
+        "speaker_next",
+        "speaker_playing",
+        "speaker_prev",
+        "volume_set",
+        "onoff",
+        "volume_down",
+        "volume_mute",
+        "volume_up"
+      ],
+      "images": {
+        "large": "/drivers/enigma2/assets/images/large.png",
+        "small": "/drivers/enigma2/assets/images/small.png"
+      },
+      "settings": [
+        {
+          "id": "settingIPAddress",
+          "type": "text",
+          "label": {
+            "en": "IP Address"
+          },
+          "value": "192.168.1.10",
+          "hint": {
+            "en": "Enter the IP address of your Enigma2 receiver."
+          }
+        },
+        {
+          "id": "settingPort",
+          "type": "number",
+          "label": {
+            "en": "Port"
+          },
+          "value": 80,
+          "hint": {
+            "en": "Enter the port number to connect to your Enigma2 receiver."
+          }
+        },
+        {
+          "id": "settingUsername",
+          "type": "text",
+          "label": {
+            "en": "Username"
+          },
+          "value": "",
+          "hint": {
+            "en": "Enter the username for your Enigma2 receiver, if applicable."
+          }
+        },
+        {
+          "id": "settingPassword",
+          "type": "password",
+          "label": {
+            "en": "Password"
+          },
+          "value": "",
+          "hint": {
+            "en": "Enter the password for your Enigma2 receiver, if applicable."
+          }
+        }
+      ],
+      "pair": [
+        {
+          "id": "start",
+          "template": "start.html",
+          "navigation": {
+            "next": "get_devices"
+          }
+        },
+        {
+          "id": "get_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ]
+    }
+  ]
+}

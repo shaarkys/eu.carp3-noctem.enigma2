@@ -16,5 +16,24 @@
         "info_ipadress_body": "On your Receiver open up the following&#58;<br>Open Main Menu<br>Select Setup<br>Select System<br>Select Network<br>Choose Adapter Settings<br>Under Current configuration you will find your IP-Adress",
         "info_port": "Port: ",
         "info_port_body": "If you don't have changed anything, your Port should be:<br>80<br>or<br>8080<br>This depends on the Box you use.<br>If you like to check, open a webbrowser and type in the IP-Adress of your box, if this opens the WebIf, then Port 80 is used.<br>If this opens a fault site, type in your IP-Adress followed by &#58;8080, if this shows the WebIf, then Port 8080 is used.<br>Else you can check the configuration of the WebIf if the Ports has changed. Therfor open the Plugin Menu and check WebIf Config."
-    }
+    },
+    "pair": {
+        "start": {
+          "title": "Add enigma2",
+          "error": "Error occurred",
+          "nosettings": "No settings found",
+          "session_not_found": "Session not found",
+          "unknown_error": "Unknown error",
+          "invalidInput": "Please check entered data",
+          "connection_failed": "Test connection failed.",
+          "connection_success": "Test connection was successful.",
+          "intro": "Please enter the enigma2 details, minimum IP and port.",
+          "ipAddress": "IP Address",
+          "port": "Port",
+          "username": "Username",
+          "password": "Password",
+          "saveSettings": "Test & Save",
+          "testConnection": "Test Connection"
+        }
+      }
 }

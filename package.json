@@ -14,16 +14,18 @@
     "Enigma2",
     "Homey"
   ],
-  "author": "Markus Mahr",
+  "author": "Bretislav Kubesa",
   "license": "GPL-3.0 ",
   "bugs": {
     "url": "https://github.com/shaarkys/eu.carp3-noctem.enigma2/issues"
   },
   "homepage": "https://github.com/shaarkys/eu.carp3-noctem.enigma2#readme",
   "dependencies": {
-    "axios": "^1.6.5"
+    "axios": "^1.6.5",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
-    "@types/homey": "npm:homey-apps-sdk-v3-types@^0.3.5"
+    "@types/homey": "npm:homey-apps-sdk-v3-types@^0.3.5",
+    "eslint": "^8.56.0"
   }
 }

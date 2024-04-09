@@ -1,4 +1,5 @@
 {
+  "_comment": "This file is generated. Please edit .homeycompose/app.json instead.",
   "id": "eu.carp3-noctem.enigma2",
   "name": {
     "en": "enigma2"
@@ -221,6 +222,22 @@
         }
       },
       {
+        "id": "powerstate_off",
+        "title": {
+          "en": "standby mode",
+          "de": "standby einleiten",
+          "nl": "slaapstand"
+        }
+      },
+      {
+        "id": "powerstate_on",
+        "title": {
+          "en": "standby wake",
+          "de": "standby verlassen",
+          "nl": "Slaapstand opheffen"
+        }
+      },
+      {
         "id": "powerstate_reboot",
         "title": {
           "en": "reboot receiver",
@@ -237,19 +254,11 @@
         }
       },
       {
-        "id": "powerstate_on",
+        "id": "vol_mute",
         "title": {
-          "en": "standby wake",
-          "de": "standby verlassen",
-          "nl": "Slaapstand opheffen"
-        }
-      },
-      {
-        "id": "powerstate_off",
-        "title": {
-          "en": "standby mode",
-          "de": "standby einleiten",
-          "nl": "slaapstand"
+          "en": "Volume mute",
+          "de": "Lautstärke stumm",
+          "nl": "Volume gedemd"
         }
       },
       {
@@ -280,14 +289,6 @@
         ]
       },
       {
-        "id": "vol_mute",
-        "title": {
-          "en": "Volume mute",
-          "de": "Lautstärke stumm",
-          "nl": "Volume gedemd"
-        }
-      },
-      {
         "id": "vol_unmute",
         "title": {
           "en": "Volume unmute",
@@ -296,5 +297,101 @@
         }
       }
     ]
-  }
+  },
+  "drivers": [
+    {
+      "name": {
+        "en": "enigma2"
+      },
+      "class": "tv",
+      "capabilities": [
+        "speaker_artist",
+        "speaker_track",
+        "channel_down",
+        "channel_up",
+        "speaker_next",
+        "speaker_playing",
+        "speaker_prev",
+        "volume_set",
+        "onoff",
+        "volume_down",
+        "volume_mute",
+        "volume_up"
+      ],
+      "platforms": [
+        "local"
+      ],
+      "connectivity": [
+        "lan"
+      ],
+      "images": {
+        "small": "/drivers/enigma2/assets/images/small.png",
+        "large": "/drivers/enigma2/assets/images/large.png",
+        "xlarge": "/drivers/enigma2/assets/images/xlarge.png"
+      },
+      "settings": [
+        {
+          "id": "IPAddress",
+          "type": "text",
+          "label": {
+            "en": "IP Address"
+          },
+          "value": "192.168.1.10",
+          "hint": {
+            "en": "Enter the IP address of your Enigma2 receiver."
+          }
+        },
+        {
+          "id": "Port",
+          "type": "number",
+          "label": {
+            "en": "Port"
+          },
+          "value": 80,
+          "hint": {
+            "en": "Enter the port number to connect to your Enigma2 receiver."
+          }
+        },
+        {
+          "id": "Username",
+          "type": "text",
+          "label": {
+            "en": "Username"
+          },
+          "value": "",
+          "hint": {
+            "en": "Enter the username for your Enigma2 receiver, if applicable."
+          }
+        },
+        {
+          "id": "Password",
+          "type": "password",
+          "label": {
+            "en": "Password"
+          },
+          "value": "",
+          "hint": {
+            "en": "Enter the password for your Enigma2 receiver, if applicable."
+          }
+        }
+      ],
+      "pair": [
+        {
+          "id": "start"
+        },
+        {
+          "id": "get_devices",
+          "template": "list_devices",
+          "navigation": {
+            "next": "add_devices"
+          }
+        },
+        {
+          "id": "add_devices",
+          "template": "add_devices"
+        }
+      ],
+      "id": "enigma2"
+    }
+  ]
 }
