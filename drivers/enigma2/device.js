@@ -72,7 +72,8 @@ class enigma2_device extends Device {
 
     await this.setUnavailable(); // Initially mark the device as unavailable
 
-
+    // Add listener for speaker_playing
+    this.registerCapabilityListener('speaker_playing', this.onSpeakerPlayingChanged.bind(this));
 
 
     // Start polling
@@ -416,29 +417,37 @@ class enigma2_device extends Device {
         const durationTime = parseFloat((totalDuration / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
         await this.setCapabilityValue("speaker_duration", durationTime);
       }
-      
+
+      let serviceName, eventTitle, serviceReference;
+      let totalDuration = 0;
+      let remainingTime = 0;
       let percentageCompleted = 0;
+      let isPlaying = false;
 
       if (remainingMatch && durationMatch) {
-        const totalDuration = parseInt(durationMatch[1], 10);
-        const remainingTime = parseInt(remainingMatch[1], 10);
+        totalDuration = parseInt(durationMatch[1], 10);
+        remainingTime = parseInt(remainingMatch[1], 10);
         percentageCompleted = ((totalDuration - remainingTime) / totalDuration) * 100;
         const currentPosition = parseFloat(((totalDuration - remainingTime) / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
         await this.setCapabilityValue("speaker_position", currentPosition);
       }
-      let serviceName, eventTitle, serviceReference;
+
 
       if (serviceNameMatch && eventTitleMatch) {
-        const serviceName = `${serviceNameMatch[1]} (${percentageCompleted.toFixed(0)}%)`;
-        const eventTitle = eventTitleMatch[1];
+        serviceName = `${serviceNameMatch[1]} (${percentageCompleted.toFixed(0)}%)`;
+        eventTitle = eventTitleMatch[1];
+        isPlaying = eventTitle != null; // Playing if eventTitle is not null
 
         // Update capabilities if there's a change
         if (this.previousStates.serviceName !== serviceName ||
           this.previousStates.eventTitle !== eventTitle) {
-            this.log('TV channel :', serviceName);
-            this.log('Show:', eventTitle);
+          this.log('TV channel :', serviceName);
+          this.log('Show:', eventTitle);
           await this.setCapabilityValue('speaker_artist', serviceName);
           await this.setCapabilityValue('speaker_track', eventTitle);
+
+          // Update speaker_playing capability
+          await this.setCapabilityValue('speaker_playing', isPlaying);
 
           // Update cache
           this.previousStates.serviceName = serviceName;
@@ -501,6 +510,17 @@ class enigma2_device extends Device {
         this.log(`Mute state is now: ${isMuted}`);
         await this.setCapabilityValue('volume_mute', isMuted);
       }
+    }
+  }
+
+  async onSpeakerPlayingChanged(playing) {
+    // Check if the device is on
+    if (await this.getCapabilityValue('onoff')) {
+      // Define the command based on the playing status
+      let command = playing ? 207 : 119;
+
+      // Send the appropriate command
+      return this.executeEnigma2Command(`remotecontrol?command=${command}`);
     }
   }
 
