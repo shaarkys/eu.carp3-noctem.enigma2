@@ -32,7 +32,7 @@
           "port": "Port",
           "username": "Username",
           "password": "Password",
-          "saveSettings": "Test & Save",
+          "saveSettings": "Save",
           "testConnection": "Test Connection"
         }
       }

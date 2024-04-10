@@ -41,17 +41,6 @@
       }
     },
     {
-      "id": "Port",
-      "type": "number",
-      "label": {
-        "en": "Port"
-      },
-      "value": 80,
-      "hint": {
-        "en": "Enter the port number to connect to your Enigma2 receiver."
-      }
-    },
-    {
       "id": "Username",
       "type": "text",
       "label": {

@@ -23,7 +23,7 @@ class Enigma2Driver extends Homey.Driver {
         data: { id: data.IPAddress }, // Use IP address as unique ID
         settings: {
           IPAddress: data.IPAddress,
-          port: data.Port,
+          // port: data.Port,
           username: data.Username,
           password: data.Password
         }

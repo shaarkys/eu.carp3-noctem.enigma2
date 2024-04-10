@@ -1,20 +1,39 @@
 {
-    "appLogStart":"enigma2 app wurde erfolgreich gestartet",
-    "settings":{
+    "appLogStart": "enigma2-App erfolgreich gestartet",
+    "settings": {
         "header": "enigma2 Konfigurationsseite",
-        "description": "Aktuell ist es erforderlich, dass die IP-Adresse und der Port des Receivers per Hand konfiguriert werden. Am besten klappt das, wenn der Receiver vom Router immer wieder die selbe IP-Adresse zugewiesen bekommt.",
-        "warning": "Durch ihren Beta Status kann die App jederzeit Abstürzen, wenn igendwelche Probleme auftreten, bitte unbedingt ein Issue in GitHub oder ein Homey Community eintrag vornehmen!",
-        "config": "Konfigurations Daten:",
+        "description": "Derzeit ist es erforderlich, die IP-Adresse und den Port Ihres enigma2-Empfängers manuell einzustellen. Daher ist es am besten, wenn Sie auch in Ihrem Router eine feste IP-Adresse für Ihren Empfänger einstellen.",
+        "warning": "Aufgrund des aktuellen Beta-Status kann die App jederzeit abstürzen, wenn Sie Probleme finden, melden Sie diese bitte auf GitHub oder im Homey-Forum!",
+        "config": "Konfigurationsdaten:",
         "ip": "IP-Adresse: ",
         "port": "Port: ",
-        "username": "Benutzername: ",
+        "username": "Benutzername: ", 
         "password": "Passwort: ",
         "button": "Konfiguration speichern",
-        "restart":"Bitte die App nach dem speichern neu starten!",
-        "obtain_info_header": "Wie kommt man an die benötigten Informationen:",
+        "restart": "Führen Sie einen App-Neustart durch, nachdem Sie eine neue Konfiguration gespeichert haben!",
+        "obtain_info_header": "Erforderliche Informationen beschaffen:",
         "info_ipadress": "IP-Adresse: ",
-        "info_ipadress_body": "Am Receiver die folgenen Menüs öffnen&#58;<br>Hauptmenü<br>Einstellungen<br>System<br>Netzwerk<br>Adapter-Einstellungen<br>Unter Aktuelle Einstellungen findet siche die IP-Adresse",
+        "info_ipadress_body": "Öffnen Sie auf Ihrem Empfänger das Folgende&#58;<br>Hauptmenü öffnen<br>Einstellungen auswählen<br>System auswählen<br>Netzwerk auswählen<br>Adaptereinstellungen wählen<br>Unter Aktuelle Konfiguration finden Sie Ihre IP-Adresse",
         "info_port": "Port: ",
-        "info_port_body": "Wenn nichts geändert wurde, dann sollte der Port folgender sein:<br>80<br>oder<br>8080<br>Je nachdem welcher Receiver genutzt wird.<br>Um zu überprüfen, welcher Port genutzt wird, die IP-Adresse in die Adresszeile eines Browsers tippen, wenn sich nun das WebIf öffnet, dann wird Port 80 verwendet.<br>Wenn eine Fehlerseite angezeigt wird, dann die IP-Adresse gefolgt von &#58;8080 eingeben, zeigt dies das WebIf dann wird Port 8080 verwendet.<br>Sollte dies auch kein WebIf zeigen, dann bitte die Konfiguration des Plugins überprüfen."
-    }
+        "info_port_body": "Wenn Sie nichts geändert haben, sollte Ihr Port sein:<br>80<br>oder<br>8080<br>Dies hängt von der Box ab, die Sie verwenden.<br>Um zu überprüfen, öffnen Sie einen Webbrowser und geben Sie die IP-Adresse Ihrer Box ein, wenn dies das WebIf öffnet, dann wird Port 80 verwendet.<br>Wenn dies eine Fehlerseite öffnet, geben Sie Ihre IP-Adresse gefolgt von &#58;8080 ein, wenn dies das WebIf zeigt, dann wird Port 8080 verwendet.<br>Andernfalls können Sie die Konfiguration des WebIf überprüfen, ob die Ports geändert wurden. Dazu öffnen Sie das Plugin-Menü und überprüfen Sie die WebIf-Konfig."
+    },
+    "pair": {
+        "start": {
+          "title": "enigma2 hinzufügen",
+          "error": "Ein Fehler ist aufgetreten",
+          "nosettings": "Keine Einstellungen gefunden",
+          "session_not_found": "Sitzung nicht gefunden",
+          "unknown_error": "Unbekannter Fehler",
+          "invalidInput": "Bitte überprüfen Sie die eingegebenen Daten",
+          "connection_failed": "Testverbindung fehlgeschlagen.",
+          "connection_success": "Testverbindung war erfolgreich.",
+          "intro": "Bitte geben Sie die enigma2-Daten ein, mindestens IP und Port.",
+          "ipAddress": "IP-Adresse",
+          "port": "Port",
+          "username": "Benutzername",
+          "password": "Passwort",
+          "saveSettings": "Speichern",
+          "testConnection": "Verbindung testen"
+        }
+      }
 }

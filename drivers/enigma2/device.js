@@ -60,6 +60,11 @@ class enigma2_device extends Device {
     this.registerCapabilityListener('speaker_next', this.onSpeakerNext.bind(this));
     this.registerCapabilityListener('speaker_prev', this.onSpeakerPrev.bind(this));
 
+    await this.setUnavailable(); // Initially mark the device as unavailable
+
+
+
+
     // Start polling
     this.startPolling();
 
@@ -67,19 +72,27 @@ class enigma2_device extends Device {
   }
 
   async pollPowerState() {
-    const isStandby = await this.checkStandbyState();
-    const isOn = !isStandby;
+    try {
+      const isStandby = await this.checkStandbyState();
+      const isOn = !isStandby;
 
-    await this.setCapabilityValue('onoff', isOn);
+      if (this.getAvailable() === false) {
+        await this.setAvailable(); // Device is back online
+      }
 
-    if (isOn) {
-      await this.updateCurrentPlayingInfo();
-    } else {
-      // Additional logic for the device being off
-      await this.setCapabilityValue('speaker_artist', "");
-      await this.setCapabilityValue('speaker_track', "");
+      await this.setCapabilityValue('onoff', isOn);
+
+      if (isOn) {
+        await this.updateCurrentPlayingInfo();
+      } else {
+        // Additional logic for the device being off
+      }
+      return isOn;
+    } catch (error) {
+      await this.setUnavailable(); // Set unavailable if there's an error
+      this.error('Device is offline:', error);
+      return false;
     }
-    return isOn; // Return the power state
   }
 
   startPolling() {
@@ -94,14 +107,28 @@ class enigma2_device extends Device {
       }
     }, 5000); // Poll every 5 seconds
   }
-  async pollVolumeState() {
-    const volumeData = await this.callEnigma2('vol');
-    const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
-    const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
 
-    await this.setCapabilityValue('volume_set', volume / 100);
-    await this.setCapabilityValue('volume_mute', isMuted);
+  async pollVolumeState() {
+    try {
+      // Check if the device is marked as available before attempting to poll
+      if (this.getAvailable()) {
+        const volumeData = await this.callEnigma2('vol');
+
+        // Parse the volume data
+        const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
+        const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
+
+        // Update the volume_set and volume_mute capabilities
+        await this.setCapabilityValue('volume_set', volume / 100);
+        await this.setCapabilityValue('volume_mute', isMuted);
+      }
+    } catch (error) {
+      // If an error occurs (e.g., network issue), mark the device as unavailable
+      await this.setUnavailable().catch(this.error);
+      this.error('Error polling volume state:', error);
+    }
   }
+
 
   /**
    * onAdded is called when the user adds the device, called just after pairing.
@@ -117,6 +144,10 @@ class enigma2_device extends Device {
     this.enigma2_host = `${this.enigma2_ip}:${this.enigma2_port}`;
 
     this.registerFlowCards();
+
+    // Start polling
+    this.startPolling();
+
   }
 
   updateSettings(settings) {
@@ -249,9 +280,8 @@ class enigma2_device extends Device {
   registerFlowCardAction(cardName, getCallSpec) {
     const actionCard = this.homey.flow.getActionCard(cardName);
     actionCard.registerRunListener(async (args) => {
-      const call_spec = getCallSpec(args);
-      await this.callEnigma2(call_spec);
-      return true;
+      const callSpec = getCallSpec();
+      return this.executeEnigma2Command(callSpec);
     });
   }
 
@@ -273,13 +303,9 @@ class enigma2_device extends Device {
       this.log(isStandby ? 'Enigma2 is currently in standby mode.' : 'Enigma2 is currently active (not in standby mode).');
       return isStandby;
     } catch (error) {
-      this.error('Error checking standby state:', error);
-      return false;
+      throw new Error('Device might be offline'); // Throw to be caught in pollPowerState
     }
   }
-
-
-
 
   registerConditionFlowCard(cardName) {
     const conditionCard = this.homey.flow.getConditionCard(cardName);
@@ -385,25 +411,46 @@ class enigma2_device extends Device {
         let serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
         const albumArtUrl = `https://${this.deviceData.ipAddress}/picon/${serviceReference}.png`;
 
-        // Set the album art using a stream
-        this.albumArtImage.setStream(async (stream) => {
-          const res = await fetch(albumArtUrl);
+        try {
+          // Set the album art using a stream
+          this.albumArtImage.setStream(async (stream) => {
+            // Create an axios instance with a custom httpsAgent to bypass SSL certificate errors
+            // and include the authentication details
+            // Create an axios instance with a custom httpsAgent to bypass SSL certificate errors
+            const instance = axios.create({
+              httpsAgent: new https.Agent({
+                rejectUnauthorized: false // Bypass SSL certificate errors
+              })
+            });
 
-          if (!res.ok) {
-            throw new Error("Failed to fetch image");
-          }
+            // Check if username and password are provided
+            if (this.deviceData.username && this.deviceData.password) {
+              instance.defaults.auth = {
+                username: this.deviceData.username,
+                password: this.deviceData.password
+              };
+            }
 
-          return res.body.pipe(stream);
-        });
+            // Use axios to get the response as a stream
+            const response = await instance.get(albumArtUrl, {
+              responseType: 'stream'
+            });
 
-        await this.albumArtImage.update();
-        this.log('Album art image updated:', albumArtUrl);
+            // Pipe the response stream to the album art stream
+            response.data.pipe(stream);
+          });
+
+          await this.albumArtImage.update();
+          this.setAlbumArtImage(this.albumArtImage);
+          this.log('Album art image updated:', albumArtUrl);
+        } catch (error) {
+          this.error('Failed to update album art:', error);
+        }
       }
     } catch (error) {
       this.error('Failed to update current playing info:', error);
     }
   }
-
 
 
   // Mute toggle handling
@@ -418,8 +465,6 @@ class enigma2_device extends Device {
       }
     }
   }
-
-
 
 }
 

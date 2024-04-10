@@ -1,20 +1,39 @@
 {
-    "appLogStart":"enigma2 app succesvol gestart.",
-    "settings":{
+    "appLogStart": "enigma2-app succesvol gestart",
+    "settings": {
         "header": "enigma2 configuratiepagina",
-        "description": "Momenteel is het vereist om het IP adres en het poortnummer van je Enigma2 ontvanger handmatig in te stellen. Daarom is het aan te raden een statisch IP adres voor je ontvanger te gebruiken.",
-        "warning": "Gezien de huidige beta status bestaat de kans op het onverwacht crashen van de app. Indien u tegen problemen aanloopt, meld ze svp op GitHub of in het Homey Topic!",
-        "config": "Configuratie Data:",
-        "ip": "IP Adres: ",
+        "description": "Momenteel is het vereist om handmatig het IP-adres en de poort van je enigma2-ontvanger in te stellen. Daarom is het het beste als je ook in je router een vast IP-adres voor je ontvanger instelt.",
+        "warning": "Vanwege de huidige bètastaat kan de app op elk moment crashen, als je problemen vindt, meld ze dan op GitHub of in het Homey-onderwerp!",
+        "config": "Configuratiegegevens:",
+        "ip": "IP-adres: ",
         "port": "Poort: ",
-		"username": "Gebruikersnaam: ",
-		"password": "Wachtwoord: ",
-        "button": "Sla de configuratie op",
-        "restart": "Voer de app opnieuw uit na het opslaan van een nieuwe configuratie!",
-        "obtain_info_header": "Verkrijg de benodigde informatie:",
-        "info_ipadress": "IP adres: ",
-        "info_ipadress_body": "Open op uw ontvanger het volgende menu&#58;<br>Open Main Menu<br>Selecteer Setup<br>Selecteer System<br>Selecteer Network<br>Kies Adapter Settings<br>Onder Current configuration vind je het ip adres",
+        "username": "Gebruikersnaam: ", 
+        "password": "Wachtwoord: ",
+        "button": "Configuratie opslaan",
+        "restart": "Voer een app-herstart uit na het opslaan van een nieuwe configuratie!",
+        "obtain_info_header": "Benodigde informatie verkrijgen:",
+        "info_ipadress": "IP-adres: ",
+        "info_ipadress_body": "Op je ontvanger open het volgende&#58;<br>Open Hoofdmenu<br>Selecteer Instellingen<br>Selecteer Systeem<br>Selecteer Netwerk<br>Kies Adapterinstellingen<br>Onder Huidige configuratie vind je je IP-adres",
         "info_port": "Poort: ",
-        "info_port_body": "Indien u niets aangepast heeft, zou uw poort moeten zijn:<br>80<br>of<br>8080<br>Dit is afhankelijk van het type ontvanger dat gebruikt wordt.<br>Indien je dit wilt controleren, open een webbrowser en typ het adres van uw ontvanger in. Indien dit de WebIf opent, dan wordt poort 80 gebruikt.<br>Geeft dit een timeout of foutmelding, vul dan hetzelfde IP adres in, gevolgd door &#58;8080. Als dit de WebIf toont, dan wordt poort 8080 gebruikt.<br>Bij geen succes kunt u de instellingen van WebIf raadplegen voor de juiste poort. Open hiervoor het plugin menu en controleer de optie WebIf Config."
-    }
+        "info_port_body": "Als je niets hebt veranderd, zou je poort moeten zijn:<br>80<br>of<br>8080<br>Dit hangt af van de box die je gebruikt.<br>Om te controleren, open een webbrowser en typ het IP-adres van je box in, als dit de WebIf opent, dan wordt poort 80 gebruikt.<br>Als dit een foutpagina opent, typ dan je IP-adres gevolgd door &#58;8080, als dit de WebIf toont, dan wordt poort 8080 gebruikt.<br>Anders kun je de configuratie van de WebIf controleren of de poorten zijn veranderd. Daarvoor open je het Plugin-menu en controleer je de WebIf-config."
+    },
+    "pair": {
+        "start": {
+          "title": "Voeg enigma2 toe",
+          "error": "Er is een fout opgetreden",
+          "nosettings": "Geen instellingen gevonden",
+          "session_not_found": "Sessie niet gevonden",
+          "unknown_error": "Onbekende fout",
+          "invalidInput": "Controleer de ingevoerde gegevens",
+          "connection_failed": "Testverbinding mislukt.",
+          "connection_success": "Testverbinding was succesvol.",
+          "intro": "Voer de enigma2-gegevens in, minimaal IP en poort.",
+          "ipAddress": "IP-adres",
+          "port": "Poort",
+          "username": "Gebruikersnaam",
+          "password": "Wachtwoord",
+          "saveSettings": "Opslaan",
+          "testConnection": "Test Verbinding"
+        }
+      }
 }
