@@ -146,6 +146,26 @@
           "de": "!{{ist|ist nicht}} im Standby-Modus",
           "nl": "!{{is|is niet}} in stand-by modus"
         }
+      },
+      {
+        "id": "is_standby_on_device",
+        "title": {
+          "en": "It !{{is|is not}} in standby mode",
+          "de": "Es !{{ist|ist nicht}} im Standby-Modus",
+          "nl": "Het !{{is|is niet}} in stand-by modus"
+        },
+        "hint": {
+          "en": "Check if the device is currently in standby mode.",
+          "de": "Überprüfen Sie, ob das Gerät derzeit im Standby-Modus ist.",
+          "nl": "Controleer of het apparaat momenteel in stand-by modus is."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
       }
     ],
     "actions": [
@@ -295,6 +315,174 @@
           "de": "Lautstärke stumm aufheben",
           "nl": "Gedemd volume opheffen"
         }
+      },
+      {
+        "id": "command_send_device",
+        "title": {
+          "en": "Send command as ID",
+          "de": "Befehl als ID senden",
+          "nl": "Stuur commando als ID"
+        },
+        "titleFormatted": {
+          "en": "Send command with ID [[command]]",
+          "de": "Sende Befehl mit ID [[command]]",
+          "nl": "Stuur commando met ID [[command]]"
+        },
+        "hint": {
+          "en": "Send a specific command to the device using its ID.",
+          "de": "Senden Sie einen bestimmten Befehl an das Gerät unter Verwendung seiner ID.",
+          "nl": "Stuur een specifiek commando naar het apparaat met behulp van de ID."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          },
+          {
+            "name": "command",
+            "type": "number",
+            "placeholder": {
+              "en": "Command ID",
+              "de": "Befehls-ID",
+              "nl": "Commando-ID"
+            }
+          }
+        ]
+      },
+      {
+        "id": "message_send_device",
+        "title": {
+          "en": "Send message",
+          "de": "Nachricht senden",
+          "nl": "Stuur bericht"
+        },
+        "titleFormatted": {
+          "en": "Send message: [[msg_text_full]]",
+          "de": "Nachricht senden: [[msg_text_full]]",
+          "nl": "Stuur bericht: [[msg_text_full]]"
+        },
+        "hint": {
+          "en": "Send a custom message to the device.",
+          "de": "Senden Sie eine benutzerdefinierte Nachricht an das Gerät.",
+          "nl": "Stuur een aangepast bericht naar het apparaat."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          },
+          {
+            "name": "msg_text_full",
+            "type": "text",
+            "placeholder": {
+              "en": "Message Text",
+              "de": "Nachrichtentext",
+              "nl": "Berichttekst"
+            }
+          }
+        ]
+      },
+      {
+        "id": "powerstate_deepstandby_device",
+        "title": {
+          "en": "Deep standby mode",
+          "de": "Tiefschlafmodus",
+          "nl": "Diepe standby-modus"
+        },
+        "hint": {
+          "en": "Put the device into deep standby mode.",
+          "de": "Versetzen Sie das Gerät in den Tiefschlafmodus.",
+          "nl": "Zet het apparaat in diepe standby-modus."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
+      },
+      {
+        "id": "powerstate_off_device",
+        "title": {
+          "en": "Standby mode",
+          "de": "Standby-Modus",
+          "nl": "Stand-by modus"
+        },
+        "hint": {
+          "en": "Put the device into standby mode.",
+          "de": "Versetzen Sie das Gerät in den Standby-Modus.",
+          "nl": "Zet het apparaat in stand-by modus."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
+      },
+      {
+        "id": "powerstate_on_device",
+        "title": {
+          "en": "Standby wake",
+          "de": "Standby verlassen",
+          "nl": "Slaapstand opheffen"
+        },
+        "hint": {
+          "en": "Wake the device from standby mode.",
+          "de": "Wecken Sie das Gerät aus dem Standby-Modus.",
+          "nl": "Haal het apparaat uit de slaapstand."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
+      },
+      {
+        "id": "powerstate_reboot_device",
+        "title": {
+          "en": "Reboot receiver",
+          "de": "Receiver neu starten",
+          "nl": "Ontvanger herstarten"
+        },
+        "hint": {
+          "en": "Reboot the receiver.",
+          "de": "Starten Sie den Receiver neu.",
+          "nl": "Herstart de ontvanger."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
+      },
+      {
+        "id": "powerstate_restart_enigma2_device",
+        "title": {
+          "en": "Reboot enigma2 software",
+          "de": "Enigma2-Software neu starten",
+          "nl": "Enigma2-software herstarten"
+        },
+        "hint": {
+          "en": "Restart the enigma2 software on the device.",
+          "de": "Starten Sie die Enigma2-Software auf dem Gerät neu.",
+          "nl": "Herstart de enigma2-software op het apparaat."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
       }
     ]
   },

@@ -33,9 +33,7 @@ class enigma2_device extends Device {
     this.log('--enigma2 device --');
     
     this.albumArtImage = await this.homey.images.createImage();
-    // await this.setAlbumArtImage(this.albumArtImage);
-
-
+    
     // Initialize device settings
     const settings = this.getSettings();
     this.deviceData = {
@@ -271,10 +269,10 @@ class enigma2_device extends Device {
 
   registerFlowCards() {
     // Command Send Action
-    this.registerFlowCardAction('command_send', (args) => `remotecontrol?command=${args.command}`);
+    this.registerFlowCardAction('command_send_device', (args) => `remotecontrol?command=${args.command}`);
 
     // Message Send Action
-    this.registerFlowCardAction('message_send', (args) => {
+    this.registerFlowCardAction('message_send_device', (args) => {
       const message_complete = args.msg_text_full;
       const message_split = message_complete.split("|");
       const msg_type = message_split[0];
@@ -285,19 +283,19 @@ class enigma2_device extends Device {
     });
 
     // Powerstate Deep Standby Action
-    this.registerFlowCardAction('powerstate_deepstandby', () => 'powerstate?newstate=1');
+    this.registerFlowCardAction('powerstate_deepstandby_device', () => 'powerstate?newstate=1');
 
     // Powerstate Reboot Action
-    this.registerFlowCardAction('powerstate_reboot', () => 'powerstate?newstate=2');
+    this.registerFlowCardAction('powerstate_reboot_device', () => 'powerstate?newstate=2');
 
     // Restart Enigma2 Action
-    this.registerFlowCardAction('powerstate_restart_enigma2', () => 'powerstate?newstate=3');
+    this.registerFlowCardAction('powerstate_restart_enigma2_device', () => 'powerstate?newstate=3');
 
     // Powerstate On Action
-    this.registerFlowCardAction('powerstate_on', () => 'powerstate?newstate=4');
+    this.registerFlowCardAction('powerstate_on_device', () => 'powerstate?newstate=4');
 
     // Powerstate Off Action
-    this.registerFlowCardAction('powerstate_off', () => 'powerstate?newstate=5');
+    this.registerFlowCardAction('powerstate_off_device', () => 'powerstate?newstate=5');
 
     // Volume Set Action
     this.registerFlowCardAction('vol_set', (args) => `vol?set=set${args.volume}`);

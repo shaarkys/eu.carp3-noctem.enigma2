@@ -1,0 +1,8 @@
+{
+  "id": "powerstate_on",
+  "title": {
+    "en": "standby wake",
+    "de": "standby verlassen",
+    "nl": "Slaapstand opheffen"
+  }
+}

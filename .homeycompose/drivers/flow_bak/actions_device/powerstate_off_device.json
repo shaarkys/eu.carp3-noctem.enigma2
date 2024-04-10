@@ -1,0 +1,8 @@
+{
+  "id": "powerstate_off",
+  "title": {
+    "en": "standby mode",
+    "de": "standby einleiten",
+    "nl": "slaapstand"
+  }
+}

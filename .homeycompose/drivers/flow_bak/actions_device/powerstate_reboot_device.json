@@ -1,0 +1,8 @@
+{
+  "id": "powerstate_reboot",
+  "title": {
+    "en": "reboot receiver",
+    "de": "Neustart Receiver",
+    "nl": "Herstart ontvanger"
+  }
+}
