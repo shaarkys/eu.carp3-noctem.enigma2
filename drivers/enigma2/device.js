@@ -27,6 +27,16 @@ class enigma2_device extends Device {
       password: settings.Password
     };
 
+    // Initialize previous states cache
+    this.previousStates = {
+      volume: null,
+      isMuted: null,
+      serviceName: null,
+      eventTitle: null,
+      serviceReference: null
+  };
+
+
     // Register flow cards
     this.registerFlowCards();
 
@@ -110,24 +120,31 @@ class enigma2_device extends Device {
 
   async pollVolumeState() {
     try {
-      // Check if the device is marked as available before attempting to poll
-      if (this.getAvailable()) {
-        const volumeData = await this.callEnigma2('vol');
+        // Check if the device is marked as available before attempting to poll
+        if (this.getAvailable()) {
+            const volumeData = await this.callEnigma2('vol');
 
-        // Parse the volume data
-        const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
-        const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
+            // Parse the volume data
+            const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
+            const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
 
-        // Update the volume_set and volume_mute capabilities
-        await this.setCapabilityValue('volume_set', volume / 100);
-        await this.setCapabilityValue('volume_mute', isMuted);
-      }
+            // Update the volume_set and volume_mute capabilities if there's a change
+            if (this.previousStates.volume !== volume || this.previousStates.isMuted !== isMuted) {
+                await this.setCapabilityValue('volume_set', volume / 100);
+                await this.setCapabilityValue('volume_mute', isMuted);
+
+                // Update the cached state
+                this.previousStates.volume = volume;
+                this.previousStates.isMuted = isMuted;
+            }
+        }
     } catch (error) {
-      // If an error occurs (e.g., network issue), mark the device as unavailable
-      await this.setUnavailable().catch(this.error);
-      this.error('Error polling volume state:', error);
+        // If an error occurs (e.g., network issue), mark the device as unavailable
+        await this.setUnavailable().catch(this.error);
+        this.error('Error polling volume state:', error);
     }
-  }
+}
+
 
 
   /**
@@ -389,68 +406,76 @@ class enigma2_device extends Device {
 
   async updateCurrentPlayingInfo() {
     try {
-      const response = await this.callEnigma2('getcurrent');
-      // Parse the XML response to get service name, event title, and service reference
-      const serviceNameMatch = response.match(/<e2servicename>(.*?)<\/e2servicename>/);
-      const eventTitleMatch = response.match(/<e2eventtitle>(.*?)<\/e2eventtitle>/);
-      const serviceReferenceMatch = response.match(/<e2servicereference>(.*?)<\/e2servicereference>/);
+        const response = await this.callEnigma2('getcurrent');
+        // Parse the XML response to get service name, event title, and service reference
+        const serviceNameMatch = response.match(/<e2servicename>(.*?)<\/e2servicename>/);
+        const eventTitleMatch = response.match(/<e2eventtitle>(.*?)<\/e2eventtitle>/);
+        const serviceReferenceMatch = response.match(/<e2servicereference>(.*?)<\/e2servicereference>/);
 
-      if (serviceNameMatch && eventTitleMatch) {
-        const serviceName = serviceNameMatch[1];
-        const eventTitle = eventTitleMatch[1];
+        let serviceName, eventTitle, serviceReference;
 
-        this.log('TV Channel Name:', serviceName);
-        this.log('Event:', eventTitle);
+        if (serviceNameMatch && eventTitleMatch) {
+            serviceName = serviceNameMatch[1];
+            eventTitle = eventTitleMatch[1];
 
-        // Update capabilities
-        await this.setCapabilityValue('speaker_artist', serviceName);
-        await this.setCapabilityValue('speaker_track', eventTitle);
-      }
+            this.log('TV Channel Name:', serviceName);
+            this.log('Event:', eventTitle);
 
-      if (serviceReferenceMatch) {
-        let serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
-        const albumArtUrl = `https://${this.deviceData.ipAddress}/picon/${serviceReference}.png`;
+            // Update capabilities if there's a change
+            if (this.previousStates.serviceName !== serviceName ||
+                this.previousStates.eventTitle !== eventTitle) {
+                await this.setCapabilityValue('speaker_artist', serviceName);
+                await this.setCapabilityValue('speaker_track', eventTitle);
 
-        try {
-          // Set the album art using a stream
-          this.albumArtImage.setStream(async (stream) => {
-            // Create an axios instance with a custom httpsAgent to bypass SSL certificate errors
-            // and include the authentication details
-            // Create an axios instance with a custom httpsAgent to bypass SSL certificate errors
-            const instance = axios.create({
-              httpsAgent: new https.Agent({
-                rejectUnauthorized: false // Bypass SSL certificate errors
-              })
-            });
-
-            // Check if username and password are provided
-            if (this.deviceData.username && this.deviceData.password) {
-              instance.defaults.auth = {
-                username: this.deviceData.username,
-                password: this.deviceData.password
-              };
+                // Update cache
+                this.previousStates.serviceName = serviceName;
+                this.previousStates.eventTitle = eventTitle;
             }
-
-            // Use axios to get the response as a stream
-            const response = await instance.get(albumArtUrl, {
-              responseType: 'stream'
-            });
-
-            // Pipe the response stream to the album art stream
-            response.data.pipe(stream);
-          });
-
-          await this.albumArtImage.update();
-          this.setAlbumArtImage(this.albumArtImage);
-          this.log('Album art image updated:', albumArtUrl);
-        } catch (error) {
-          this.error('Failed to update album art:', error);
         }
-      }
+
+        if (serviceReferenceMatch) {
+            serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
+            if (this.previousStates.serviceReference !== serviceReference) {
+                const albumArtUrl = `https://${this.deviceData.ipAddress}/picon/${serviceReference}.png`;
+
+                try {
+                    // Set the album art using a stream
+                    this.albumArtImage.setStream(async (stream) => {
+                        const instance = axios.create({
+                            httpsAgent: new https.Agent({
+                                rejectUnauthorized: false // Bypass SSL certificate errors
+                            })
+                        });
+
+                        if (this.deviceData.username && this.deviceData.password) {
+                            instance.defaults.auth = {
+                                username: this.deviceData.username,
+                                password: this.deviceData.password
+                            };
+                        }
+
+                        const response = await instance.get(albumArtUrl, {
+                            responseType: 'stream'
+                        });
+                        response.data.pipe(stream);
+                    });
+
+                    await this.albumArtImage.update();
+                    this.setAlbumArtImage(this.albumArtImage);
+                    this.log('Album art image updated:', albumArtUrl);
+
+                    // Update cache
+                    this.previousStates.serviceReference = serviceReference;
+                } catch (error) {
+                    this.error('Failed to update album art:', error);
+                }
+            }
+        }
     } catch (error) {
-      this.error('Failed to update current playing info:', error);
+        this.error('Failed to update current playing info:', error);
     }
-  }
+}
+
 
 
   // Mute toggle handling
