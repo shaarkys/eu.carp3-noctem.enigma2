@@ -416,25 +416,27 @@ class enigma2_device extends Device {
         const durationTime = parseFloat((totalDuration / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
         await this.setCapabilityValue("speaker_duration", durationTime);
       }
+      
+      let percentageCompleted = 0;
 
       if (remainingMatch && durationMatch) {
         const totalDuration = parseInt(durationMatch[1], 10);
         const remainingTime = parseInt(remainingMatch[1], 10);
+        percentageCompleted = ((totalDuration - remainingTime) / totalDuration) * 100;
         const currentPosition = parseFloat(((totalDuration - remainingTime) / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
         await this.setCapabilityValue("speaker_position", currentPosition);
       }
       let serviceName, eventTitle, serviceReference;
 
       if (serviceNameMatch && eventTitleMatch) {
-        serviceName = serviceNameMatch[1];
-        eventTitle = eventTitleMatch[1];
-
-        this.log('TV Channel Name:', serviceName);
-        this.log('Event:', eventTitle);
+        const serviceName = `${serviceNameMatch[1]} (${percentageCompleted.toFixed(0)}%)`;
+        const eventTitle = eventTitleMatch[1];
 
         // Update capabilities if there's a change
         if (this.previousStates.serviceName !== serviceName ||
           this.previousStates.eventTitle !== eventTitle) {
+            this.log('TV channel :', serviceName);
+            this.log('Show:', eventTitle);
           await this.setCapabilityValue('speaker_artist', serviceName);
           await this.setCapabilityValue('speaker_track', eventTitle);
 
