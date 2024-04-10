@@ -4,16 +4,34 @@ const { Device } = require('homey');
 const { Image, ManagerImages } = require('homey');
 const axios = require('axios');
 const https = require('https');
-const fetch = require("node-fetch");
+
+function parseDeviceInfo(xml) {
+  const getValue = (tag) => {
+    const openTag = `<${tag}>`;
+    const closeTag = `</${tag}>`;
+    const start = xml.indexOf(openTag) + openTag.length;
+    const end = xml.indexOf(closeTag);
+    return start < openTag.length || end === -1 ? null : xml.substring(start, end);
+  };
+
+  return {
+    oeVersion: getValue('e2oeversion'),
+    enigmaVersion: getValue('e2enigmaversion'),
+    distroVersion: getValue('e2distroversion'),
+    imageVersion: getValue('e2imageversion'),
+    driverDate: getValue('e2driverdate'),
+    webifVersion: getValue('e2webifversion'),
+    fpVersion: getValue('e2fpversion'),
+    deviceName: getValue('e2devicename'),
+    // Additional fields can be parsed in a similar manner...
+  };
+}
 
 class enigma2_device extends Device {
 
-  /**
-   * onInit is called when the device is initialized.
-   */
   async onInit() {
-    this.log('enigma2 device has been initialized');
-
+    this.log('--enigma2 device --');
+    
     this.albumArtImage = await this.homey.images.createImage();
     // await this.setAlbumArtImage(this.albumArtImage);
 
@@ -36,6 +54,14 @@ class enigma2_device extends Device {
       serviceReference: null
     };
 
+    // get device info on init
+    try {
+      const deviceInfoXml = await this.callEnigma2('deviceinfo');
+      const deviceInfo = parseDeviceInfo(deviceInfoXml);
+      this.log('Device Info:', deviceInfo);
+    } catch (error) {
+      this.error('Failed to get device info:', error);
+    }
 
     // Register flow cards
     this.registerFlowCards();
