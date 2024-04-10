@@ -69,14 +69,14 @@
         console.log("Retrieving form data..."); // Log data retrieval
 
         var inputIpAddress = document.getElementById('IPAddress').value;
-        var inputPort = document.getElementById('Port').value;
+        //var inputPort = document.getElementById('Port').value;
         var inputUsername = document.getElementById('Username').value;
         var inputPassword = document.getElementById('Password').value;
 
         // Create an object to store data
         var data = {
             IPAddress: inputIpAddress,
-            Port: inputPort,
+          //  Port: inputPort,
             Username: inputUsername,
             Password: inputPassword
         };
@@ -87,9 +87,10 @@
     function validateFormData(data) {
         console.log("Validating form data:"); // Log data for validation
         var ipValid = /^([0-9]{1,3}\.){3}[0-9]{1,3}$/.test(data.IPAddress);
-        var portValid = /^[0-9]+$/.test(data.Port) && parseInt(data.Port, 10) > 0 && parseInt(data.Port, 10) < 65536;
+        // var portValid = /^[0-9]+$/.test(data.Port) && parseInt(data.Port, 10) > 0 && parseInt(data.Port, 10) < 65536;
 
-        if (!ipValid || !portValid) {
+        // if (!ipValid || !portValid) {
+            if (!ipValid) {
             Homey.alert(__('pair.start.invalidInput'), 'error');
             console.log("Data invalid"); // Log data retrieval
             return false;

@@ -145,8 +145,9 @@
       "class": "tv",
       "capabilities": [
         "speaker_artist",
-        "speaker_album",
         "speaker_track",
+        "speaker_position",
+        "speaker_duration",
         "channel_down",
         "channel_up",
         "speaker_next",

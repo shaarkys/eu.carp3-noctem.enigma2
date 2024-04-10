@@ -34,7 +34,7 @@ class enigma2_device extends Device {
       serviceName: null,
       eventTitle: null,
       serviceReference: null
-  };
+    };
 
 
     // Register flow cards
@@ -120,30 +120,30 @@ class enigma2_device extends Device {
 
   async pollVolumeState() {
     try {
-        // Check if the device is marked as available before attempting to poll
-        if (this.getAvailable()) {
-            const volumeData = await this.callEnigma2('vol');
+      // Check if the device is marked as available before attempting to poll
+      if (this.getAvailable()) {
+        const volumeData = await this.callEnigma2('vol');
 
-            // Parse the volume data
-            const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
-            const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
+        // Parse the volume data
+        const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
+        const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
 
-            // Update the volume_set and volume_mute capabilities if there's a change
-            if (this.previousStates.volume !== volume || this.previousStates.isMuted !== isMuted) {
-                await this.setCapabilityValue('volume_set', volume / 100);
-                await this.setCapabilityValue('volume_mute', isMuted);
+        // Update the volume_set and volume_mute capabilities if there's a change
+        if (this.previousStates.volume !== volume || this.previousStates.isMuted !== isMuted) {
+          await this.setCapabilityValue('volume_set', volume / 100);
+          await this.setCapabilityValue('volume_mute', isMuted);
 
-                // Update the cached state
-                this.previousStates.volume = volume;
-                this.previousStates.isMuted = isMuted;
-            }
+          // Update the cached state
+          this.previousStates.volume = volume;
+          this.previousStates.isMuted = isMuted;
         }
+      }
     } catch (error) {
-        // If an error occurs (e.g., network issue), mark the device as unavailable
-        await this.setUnavailable().catch(this.error);
-        this.error('Error polling volume state:', error);
+      // If an error occurs (e.g., network issue), mark the device as unavailable
+      await this.setUnavailable().catch(this.error);
+      this.error('Error polling volume state:', error);
     }
-}
+  }
 
 
 
@@ -161,9 +161,6 @@ class enigma2_device extends Device {
     this.enigma2_host = `${this.enigma2_ip}:${this.enigma2_port}`;
 
     this.registerFlowCards();
-
-    // Start polling
-    this.startPolling();
 
   }
 
@@ -406,75 +403,89 @@ class enigma2_device extends Device {
 
   async updateCurrentPlayingInfo() {
     try {
-        const response = await this.callEnigma2('getcurrent');
-        // Parse the XML response to get service name, event title, and service reference
-        const serviceNameMatch = response.match(/<e2servicename>(.*?)<\/e2servicename>/);
-        const eventTitleMatch = response.match(/<e2eventtitle>(.*?)<\/e2eventtitle>/);
-        const serviceReferenceMatch = response.match(/<e2servicereference>(.*?)<\/e2servicereference>/);
+      const response = await this.callEnigma2('getcurrent');
+      // Parse the XML response to get service name, event title, and service reference
+      const serviceNameMatch = response.match(/<e2servicename>(.*?)<\/e2servicename>/);
+      const eventTitleMatch = response.match(/<e2eventtitle>(.*?)<\/e2eventtitle>/);
+      const serviceReferenceMatch = response.match(/<e2servicereference>(.*?)<\/e2servicereference>/);
+      const durationMatch = response.match(/<e2eventduration>(\d+)<\/e2eventduration>/);
+      const remainingMatch = response.match(/<e2eventremaining>(\d+)<\/e2eventremaining>/);
 
-        let serviceName, eventTitle, serviceReference;
+      if (durationMatch) {
+        const totalDuration = parseInt(durationMatch[1], 10);
+        const durationTime = parseFloat((totalDuration / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
+        await this.setCapabilityValue("speaker_duration", durationTime);
+      }
 
-        if (serviceNameMatch && eventTitleMatch) {
-            serviceName = serviceNameMatch[1];
-            eventTitle = eventTitleMatch[1];
+      if (remainingMatch && durationMatch) {
+        const totalDuration = parseInt(durationMatch[1], 10);
+        const remainingTime = parseInt(remainingMatch[1], 10);
+        const currentPosition = parseFloat(((totalDuration - remainingTime) / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
+        await this.setCapabilityValue("speaker_position", currentPosition);
+      }
+      let serviceName, eventTitle, serviceReference;
 
-            this.log('TV Channel Name:', serviceName);
-            this.log('Event:', eventTitle);
+      if (serviceNameMatch && eventTitleMatch) {
+        serviceName = serviceNameMatch[1];
+        eventTitle = eventTitleMatch[1];
 
-            // Update capabilities if there's a change
-            if (this.previousStates.serviceName !== serviceName ||
-                this.previousStates.eventTitle !== eventTitle) {
-                await this.setCapabilityValue('speaker_artist', serviceName);
-                await this.setCapabilityValue('speaker_track', eventTitle);
+        this.log('TV Channel Name:', serviceName);
+        this.log('Event:', eventTitle);
 
-                // Update cache
-                this.previousStates.serviceName = serviceName;
-                this.previousStates.eventTitle = eventTitle;
-            }
+        // Update capabilities if there's a change
+        if (this.previousStates.serviceName !== serviceName ||
+          this.previousStates.eventTitle !== eventTitle) {
+          await this.setCapabilityValue('speaker_artist', serviceName);
+          await this.setCapabilityValue('speaker_track', eventTitle);
+
+          // Update cache
+          this.previousStates.serviceName = serviceName;
+          this.previousStates.eventTitle = eventTitle;
         }
+      }
 
-        if (serviceReferenceMatch) {
-            serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
-            if (this.previousStates.serviceReference !== serviceReference) {
-                const albumArtUrl = `https://${this.deviceData.ipAddress}/picon/${serviceReference}.png`;
+      if (serviceReferenceMatch) {
+        serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
+        if (this.previousStates.serviceReference !== serviceReference) {
+          const albumArtUrl = `https://${this.deviceData.ipAddress}/picon/${serviceReference}.png`;
 
-                try {
-                    // Set the album art using a stream
-                    this.albumArtImage.setStream(async (stream) => {
-                        const instance = axios.create({
-                            httpsAgent: new https.Agent({
-                                rejectUnauthorized: false // Bypass SSL certificate errors
-                            })
-                        });
+          try {
+            // Set the album art using a stream
+            this.albumArtImage.setStream(async (stream) => {
+              const instance = axios.create({
+                httpsAgent: new https.Agent({
+                  rejectUnauthorized: false // Bypass SSL certificate errors
+                })
+              });
 
-                        if (this.deviceData.username && this.deviceData.password) {
-                            instance.defaults.auth = {
-                                username: this.deviceData.username,
-                                password: this.deviceData.password
-                            };
-                        }
+              if (this.deviceData.username && this.deviceData.password) {
+                instance.defaults.auth = {
+                  username: this.deviceData.username,
+                  password: this.deviceData.password
+                };
+              }
 
-                        const response = await instance.get(albumArtUrl, {
-                            responseType: 'stream'
-                        });
-                        response.data.pipe(stream);
-                    });
+              const response = await instance.get(albumArtUrl, {
+                responseType: 'stream'
+              });
+              response.data.pipe(stream);
+            });
 
-                    await this.albumArtImage.update();
-                    this.setAlbumArtImage(this.albumArtImage);
-                    this.log('Album art image updated:', albumArtUrl);
+            this.setAlbumArtImage(this.albumArtImage);
+            await this.albumArtImage.update();
+            this.log('Album art image updated:', albumArtUrl);
 
-                    // Update cache
-                    this.previousStates.serviceReference = serviceReference;
-                } catch (error) {
-                    this.error('Failed to update album art:', error);
-                }
-            }
+            // Update cache
+            this.previousStates.serviceReference = serviceReference;
+          } catch (error) {
+            this.error('Failed to update album art:', error);
+          }
         }
+      }
     } catch (error) {
-        this.error('Failed to update current playing info:', error);
+      this.error('Failed to update current playing info:', error);
     }
-}
+  }
 
 
 
