@@ -10,5 +10,8 @@
   },
   "1.2.0": {
     "en": "Added new driver for device specific configuration"
+  },
+  "1.2.1": {
+    "en": "Cosmetic adjustments - logo"
   }
 }
