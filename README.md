@@ -6,13 +6,12 @@ This Project allows Control of Enigma2 devices via [Homey](https://www.athom.com
 
 1) [openWebif](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif) needs to be available on the enigma2 device
 2) Setup of enigma2 App via [Homey](https://www.athom.com/en/) required.
-   Start Homey App, open the More section, select Apps Menu, open enigma2 entry and Click on "Configure app"
 
 ## Support Overview
 
 ### when / trigger flowcards
 
-- [ ] polling required, therefor currently not decided. If you like to put in arguments, visit [Athom Community](https://community.athom.com/t/enigma2-dvb-boxes-support/9427)
+- [x] polling required, therefor currently not decided. If you like to put in arguments, visit [Athom Community](https://community.athom.com/t/enigma2-dvb-boxes-support/9427)
 
 ### and / condition flowcards
 
@@ -68,7 +67,7 @@ Message:
 
 ## For Supported Devices check the following
 
-Due to limited access to all enigma2 enabled devices, i was only able to test the functions at an Dreambox 800HDse and a few less on an VU+ duo2, if any Issues are observed, please file an Issue on [GitHub](https://github.com/carp3-noctem/eu.carp3-noctem.enigma2/issues) or Post to the [Athom Community Forum Topic](https://community.athom.com/t/enigma2-dvb-boxes-support/9427).
+Due to limited access to all enigma2 enabled devices, i was only able to test the functions on VU+ Duo2, if any Issues are observed, please file an Issue on [GitHub](https://github.com/carp3-noctem/eu.carp3-noctem.enigma2/issues) or Post to the [Athom Community Forum Topic](https://community.athom.com/t/enigma2-dvb-boxes-support/9427).
 
 1. Check Google Spreadsheet: [Google Spreadsheet](https://docs.google.com/spreadsheets/d/1DlcXXRLvs-AKHAxlF2KolwLmICR3OC4liS-9Cn0K48c/edit?usp=sharing)
    Green = Fully Supported  
@@ -76,23 +75,3 @@ Due to limited access to all enigma2 enabled devices, i was only able to test th
 2. Pictures of the Boxes can be found here: [OpenWebif Box Pictures](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif/tree/master/plugin/public/images/boxes)
 3. Pictures of the Remotes can be found here: [OpenWebif Remote Pictures](https://github.com/E2OpenPlugins/e2openplugin-OpenWebif/tree/master/plugin/public/images/remotes)
 
-## Changelog
-
-## Version 1.0.6
-
-- Standby/Wake flow condition check implemented
-
-## Version 1.0.5
-- new author (developer Noob with ChatGPT help)
-- SDK3 rewrite
-- added support for user name and password
-
-## Version 1.0.3
-
-- Typo & Text Correction
-- Fix for App Crash when wrong Configuration is used
-
-## Version 1.0.1
-
-- Code Cleaning, Commenting & Formating
-- Bumping to Version 1.0.0 (first stable Release)
