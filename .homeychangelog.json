@@ -16,5 +16,8 @@
   },
   "1.2.2": {
     "en": "Adjusted control logic and update info when Enigma2 is in standby"
+  },
+  "1.2.3": {
+    "en": "Old non-device flows depreciation (can't be added but still will be working)"
   }
 }
