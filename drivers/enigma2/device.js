@@ -31,9 +31,9 @@ class enigma2_device extends Device {
 
   async onInit() {
     this.log('--enigma2 device --');
-    
+
     this.albumArtImage = await this.homey.images.createImage();
-    
+
     // Initialize device settings
     const settings = this.getSettings();
     this.deviceData = {
@@ -103,9 +103,7 @@ class enigma2_device extends Device {
     // Start polling
     this.startPolling();
 
-
   }
-
   async pollPowerState() {
     try {
       const isStandby = await this.checkStandbyState();
@@ -120,7 +118,13 @@ class enigma2_device extends Device {
       if (isOn) {
         await this.updateCurrentPlayingInfo();
       } else {
-        // Additional logic for the device being off
+        // Set the speaker labels to "off" and other related states when the device is off
+        await this.setCapabilityValue('speaker_artist', '');
+        await this.setCapabilityValue('speaker_track', '');
+        await this.setCapabilityValue('speaker_playing', false);
+        await this.setCapabilityValue('speaker_position', 0); // Set position to 0
+        await this.setCapabilityValue('speaker_duration', 0); // Set duration to 0
+        this.log('Device is off. Resetting speaker info.');
       }
       return isOn;
     } catch (error) {
@@ -265,8 +269,6 @@ class enigma2_device extends Device {
     }
   }
 
-
-
   registerFlowCards() {
     // Command Send Action
     this.registerFlowCardAction('command_send_device', (args) => `remotecontrol?command=${args.command}`);
@@ -407,8 +409,15 @@ class enigma2_device extends Device {
   }
 
   async onSpeakerNext() {
-    // Channel up command
-    const nextCommand = 'remotecontrol?command=402';
+    // Check if the device is currently off
+    const isDeviceOff = !await this.getCapabilityValue('onoff');
+    if (isDeviceOff) {
+      this.log('Device is off. Skipping next channel command.');
+      return false; // Indicate that the operation was not performed
+    }
+
+    // If the device is on, proceed with the next channel command
+    const nextCommand = 'remotecontrol?command=402'; // Command for channel up
     const result = await this.executeEnigma2Command(nextCommand);
     if (result) {
       await this.updateCurrentPlayingInfo();
@@ -417,14 +426,22 @@ class enigma2_device extends Device {
   }
 
   async onSpeakerPrev() {
-    // Channel down command
-    const prevCommand = 'remotecontrol?command=403';
+    // Check if the device is currently off
+    const isDeviceOff = !await this.getCapabilityValue('onoff');
+    if (isDeviceOff) {
+      this.log('Device is off. Skipping previous channel command.');
+      return false; // Indicate that the operation was not performed
+    }
+
+    // If the device is on, proceed with the previous channel command
+    const prevCommand = 'remotecontrol?command=403'; // Command for channel down
     const result = await this.executeEnigma2Command(prevCommand);
     if (result) {
       await this.updateCurrentPlayingInfo();
     }
     return result;
   }
+
 
   async updateCurrentPlayingInfo() {
     try {
@@ -538,15 +555,23 @@ class enigma2_device extends Device {
   }
 
   async onSpeakerPlayingChanged(playing) {
-    // Check if the device is on
-    if (await this.getCapabilityValue('onoff')) {
-      // Define the command based on the playing status
-      let command = playing ? 207 : 119;
+    // Check if the device is currently off
+    const isDeviceOff = !await this.getCapabilityValue('onoff');
 
-      // Send the appropriate command
+    if (isDeviceOff && playing) {
+      // Device is off and needs to be turned on for playing
+      this.log('Device is off. Turning on the device.');
+      await this.executeEnigma2Command('powerstate?newstate=4'); // Command to turn on the device
+      // No need to send the play command as the device starts playing automatically when turned on
+      return true; // Return true indicating successful execution
+    } else if (!isDeviceOff) {
+      // Device is already on, send the appropriate play or pause command
+      let command = playing ? 207 : 119; // 207 for play, 119 for pause
+      this.log(`Sending command ${command} to device.`);
       return this.executeEnigma2Command(`remotecontrol?command=${command}`);
     }
   }
+
 
 }
 
