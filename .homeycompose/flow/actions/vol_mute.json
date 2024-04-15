@@ -4,5 +4,6 @@
     "en": "Volume mute",
     "de": "Lautstärke stumm",
     "nl": "Volume gedemd"
-  }
+  },
+  "deprecated": true
 }

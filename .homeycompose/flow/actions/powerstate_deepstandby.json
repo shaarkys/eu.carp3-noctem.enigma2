@@ -9,5 +9,6 @@
     "en": "No Software Control will be possible, after executing of this Command!",
     "de": "Nach dem ausführen dieses Kommandos wird keine weitere Software Kontrolle möglich sein!",
     "nl": "Software bediening zal na het uitvoeren van dit commando niet meer mogelijk zijn!"
-  }
+  },
+  "deprecated": true
 }

@@ -4,5 +4,6 @@
     "en": "standby mode",
     "de": "standby einleiten",
     "nl": "slaapstand"
-  }
+  },
+  "deprecated": true
 }

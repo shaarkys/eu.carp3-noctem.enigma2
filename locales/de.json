@@ -5,6 +5,7 @@
         "description": "Derzeit ist es erforderlich, die IP-Adresse und den Port Ihres enigma2-Empfängers manuell einzustellen. Daher ist es am besten, wenn Sie auch in Ihrem Router eine feste IP-Adresse für Ihren Empfänger einstellen.",
         "warning": "Aufgrund des aktuellen Beta-Status kann die App jederzeit abstürzen, wenn Sie Probleme finden, melden Sie diese bitte auf GitHub oder im Homey-Forum!",
         "config": "Konfigurationsdaten:",
+        "edit_warning": "Nicht bearbeiten, stattdessen GERÄT HINZUFÜGEN verwenden!",
         "ip": "IP-Adresse: ",
         "port": "Port: ",
         "username": "Benutzername: ", 

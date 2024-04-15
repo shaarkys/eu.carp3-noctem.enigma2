@@ -4,5 +4,6 @@
     "en": "reboot enigma2 software",
     "de": "Neustart enigma2 Software",
     "nl": "Herstart de enigma2 Software"
-  }
+  },
+  "deprecated": true
 }

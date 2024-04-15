@@ -145,7 +145,8 @@
           "en": "!{{is|is not}} in standby mode",
           "de": "!{{ist|ist nicht}} im Standby-Modus",
           "nl": "!{{is|is niet}} in stand-by modus"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "is_standby_on_device",
@@ -197,7 +198,8 @@
               "nl": "command ID"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       {
         "id": "message_send",
@@ -226,7 +228,8 @@
               "nl": "Bericht tekst"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       {
         "id": "powerstate_deepstandby",
@@ -239,7 +242,8 @@
           "en": "No Software Control will be possible, after executing of this Command!",
           "de": "Nach dem ausführen dieses Kommandos wird keine weitere Software Kontrolle möglich sein!",
           "nl": "Software bediening zal na het uitvoeren van dit commando niet meer mogelijk zijn!"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "powerstate_off",
@@ -247,7 +251,8 @@
           "en": "standby mode",
           "de": "standby einleiten",
           "nl": "slaapstand"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "powerstate_on",
@@ -255,7 +260,8 @@
           "en": "standby wake",
           "de": "standby verlassen",
           "nl": "Slaapstand opheffen"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "powerstate_reboot",
@@ -263,7 +269,8 @@
           "en": "reboot receiver",
           "de": "Neustart Receiver",
           "nl": "Herstart ontvanger"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "powerstate_restart_enigma2",
@@ -271,7 +278,8 @@
           "en": "reboot enigma2 software",
           "de": "Neustart enigma2 Software",
           "nl": "Herstart de enigma2 Software"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "vol_mute",
@@ -279,7 +287,8 @@
           "en": "Volume mute",
           "de": "Lautstärke stumm",
           "nl": "Volume gedemd"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "vol_set",
@@ -306,7 +315,8 @@
               "nl": "Volume instellen (0% - 100%)"
             }
           }
-        ]
+        ],
+        "deprecated": true
       },
       {
         "id": "vol_unmute",
@@ -314,7 +324,8 @@
           "en": "Volume unmute",
           "de": "Lautstärke stumm aufheben",
           "nl": "Gedemd volume opheffen"
-        }
+        },
+        "deprecated": true
       },
       {
         "id": "command_send_device",

@@ -4,5 +4,6 @@
     "en": "Volume unmute",
     "de": "Lautstärke stumm aufheben",
     "nl": "Gedemd volume opheffen"
-  }
+  },
+  "deprecated": true
 }

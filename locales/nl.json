@@ -5,6 +5,7 @@
         "description": "Momenteel is het vereist om handmatig het IP-adres en de poort van je enigma2-ontvanger in te stellen. Daarom is het het beste als je ook in je router een vast IP-adres voor je ontvanger instelt.",
         "warning": "Vanwege de huidige bètastaat kan de app op elk moment crashen, als je problemen vindt, meld ze dan op GitHub of in het Homey-onderwerp!",
         "config": "Configuratiegegevens:",
+        "edit_warning": "Bewerk niet, gebruik in plaats daarvan TOEVOEGEN APPARAAT!",
         "ip": "IP-adres: ",
         "port": "Poort: ",
         "username": "Gebruikersnaam: ", 

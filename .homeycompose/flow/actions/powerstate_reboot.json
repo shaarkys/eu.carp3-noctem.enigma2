@@ -4,5 +4,6 @@
     "en": "reboot receiver",
     "de": "Neustart Receiver",
     "nl": "Herstart ontvanger"
-  }
+  },
+  "deprecated": true
 }

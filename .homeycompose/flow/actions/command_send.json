@@ -26,5 +26,6 @@
         "nl": "command ID"
       }
     }
-  ]
+  ],
+  "deprecated": true
 }

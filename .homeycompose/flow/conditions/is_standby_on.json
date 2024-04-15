@@ -4,5 +4,6 @@
     "en": "!{{is|is not}} in standby mode",
     "de": "!{{ist|ist nicht}} im Standby-Modus",
     "nl": "!{{is|is niet}} in stand-by modus"
-  }
+  },
+  "deprecated": true
 }

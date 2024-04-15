@@ -5,6 +5,7 @@
         "description": "Currently it is required to set the IP Address and the Port of your enigma2 Receiver by Hand. Therefor it is the best, if you also Setup your Router to a dedicated IP-Adress for your Receiver.",
         "warning": "Due to the current Beta State, the app can crash ant any time, if you find issues, please file them on GitHub or on the Homey Topic!",
         "config": "Configuration Data:",
+        "edit_warning": "Do not edit, use ADD DEVICE instead!",
         "ip": "IP-Adress: ",
         "port": "Port: ",
         "username": "Username: ", 

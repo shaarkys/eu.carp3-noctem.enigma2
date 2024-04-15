@@ -23,5 +23,6 @@
         "nl": "Volume instellen (0% - 100%)"
       }
     }
-  ]
+  ],
+  "deprecated": true
 }

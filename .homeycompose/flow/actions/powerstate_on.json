@@ -4,5 +4,6 @@
     "en": "standby wake",
     "de": "standby verlassen",
     "nl": "Slaapstand opheffen"
-  }
+  },
+  "deprecated": true
 }
