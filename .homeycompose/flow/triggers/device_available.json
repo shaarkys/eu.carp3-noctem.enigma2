@@ -1,0 +1,16 @@
+{
+  "id": "device_available",
+  "title": {
+    "en": "Device becomes available"
+  },
+  "hint": {
+    "en": "Triggers when the device comes back online."
+  },
+  "args": [
+    {
+      "type": "device",
+      "name": "device",
+      "filter": "driver_id=enigma2"
+    }
+  ]
+}

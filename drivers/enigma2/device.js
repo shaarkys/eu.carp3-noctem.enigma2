@@ -32,16 +32,15 @@ class enigma2_device extends Device {
   async onInit() {
     this.log('--enigma2 device --');
 
+    this.availabilityInitialized = false;
+    this.deviceUnavailableTrigger = null;
+    this.deviceAvailableTrigger = null;
+
     this.albumArtImage = await this.homey.images.createImage();
 
     // Initialize device settings
     const settings = this.getSettings();
-    this.deviceData = {
-      ipAddress: settings.IPAddress,
-      port: settings.Port,
-      username: settings.Username,
-      password: settings.Password
-    };
+    this.updateSettings(settings);
 
     // Initialize previous states cache
     this.previousStates = {
@@ -94,7 +93,7 @@ class enigma2_device extends Device {
     this.registerCapabilityListener('speaker_next', this.onSpeakerNext.bind(this));
     this.registerCapabilityListener('speaker_prev', this.onSpeakerPrev.bind(this));
 
-    await this.setUnavailable(); // Initially mark the device as unavailable
+    await this.updateAvailability(false); // Initially mark the device as unavailable
 
     // Add listener for speaker_playing
     this.registerCapabilityListener('speaker_playing', this.onSpeakerPlayingChanged.bind(this));
@@ -109,9 +108,7 @@ class enigma2_device extends Device {
       const isStandby = await this.checkStandbyState();
       const isOn = !isStandby;
 
-      if (this.getAvailable() === false) {
-        await this.setAvailable(); // Device is back online
-      }
+      await this.updateAvailability(true); // Device is back online
 
       await this.setCapabilityValue('onoff', isOn);
 
@@ -128,7 +125,7 @@ class enigma2_device extends Device {
       }
       return isOn;
     } catch (error) {
-      await this.setUnavailable(); // Set unavailable if there's an error
+      await this.updateAvailability(false); // Set unavailable if there's an error
       this.error('Device is offline:', error);
       return false;
     }
@@ -144,7 +141,7 @@ class enigma2_device extends Device {
       } catch (error) {
         this.error('Error during polling:', error);
       }
-    }, 5000); // Poll every 5 seconds
+    }, this.pollingIntervalMs || 5000); // Poll every 5 seconds by default
   }
 
   async pollVolumeState() {
@@ -169,7 +166,7 @@ class enigma2_device extends Device {
       }
     } catch (error) {
       // If an error occurs (e.g., network issue), mark the device as unavailable
-      await this.setUnavailable().catch(this.error);
+      await this.updateAvailability(false).catch(this.error);
       this.error('Error polling volume state:', error);
     }
   }
@@ -183,29 +180,38 @@ class enigma2_device extends Device {
     this.log('enigma2 device has been added');
     // Retrieve device-specific settings
     const settings = this.getSettings();
-    this.enigma2_ip = settings.enigma2_ip;
-    this.enigma2_port = settings.enigma2_port;
-    this.enigma2_username = settings.enigma2_username;
-    this.enigma2_password = settings.enigma2_password;
-    this.enigma2_host = `${this.enigma2_ip}:${this.enigma2_port}`;
+    this.updateSettings(settings);
 
     this.registerFlowCards();
 
   }
 
   updateSettings(settings) {
-    this.enigma2_ip = settings.enigma2_ip;
-    this.enigma2_port = settings.enigma2_port;
-    this.enigma2_username = settings.enigma2_username;
-    this.enigma2_password = settings.enigma2_password;
-    this.enigma2_host = `${this.enigma2_ip}:${this.enigma2_port}`;
+    const portValue = settings.Port !== undefined && settings.Port !== null ? String(settings.Port).trim() : '';
+    const portNumber = portValue ? Number(portValue) : null;
+    const port = Number.isInteger(portNumber) && portNumber > 0 ? portNumber : null;
+    const pollValue = settings.PollInterval !== undefined && settings.PollInterval !== null ? String(settings.PollInterval).trim() : '';
+    const pollNumber = pollValue ? Number(pollValue) : null;
+    const pollSeconds = Number.isInteger(pollNumber) ? Math.min(Math.max(pollNumber, 5), 60) : 5;
+    this.pollingIntervalMs = pollSeconds * 1000;
+
+    this.deviceData = {
+      ipAddress: settings.IPAddress,
+      port: port,
+      username: settings.Username,
+      password: settings.Password
+    };
   }
 
   async onSettings({ oldSettings, newSettings, changedKeys }) {
     this.log('enigma2 device settings were changed');
-    if (changedKeys.some(key => ['enigma2_ip', 'enigma2_port', 'enigma2_username', 'enigma2_password'].includes(key))) {
+    if (changedKeys.some(key => ['IPAddress', 'Port', 'Username', 'Password', 'PollInterval'].includes(key))) {
       this.updateSettings(newSettings);
       // Add any additional logic needed when settings change
+    }
+    if (changedKeys.includes('PollInterval')) {
+      clearInterval(this.pollingInterval);
+      this.startPolling();
     }
 
   }
@@ -239,22 +245,33 @@ class enigma2_device extends Device {
     }
   }
 
+  getConnectionDetails() {
+    const port = this.deviceData && this.deviceData.port ? this.deviceData.port : null;
+    const isHttps = !port || port === 443;
+    const protocol = isHttps ? 'https' : 'http';
+    const host = port ? `${this.deviceData.ipAddress}:${port}` : this.deviceData.ipAddress;
+    return { protocol, host, isHttps };
+  }
+
   async callEnigma2(call_spec) {
     try {
       //DEBUG
       //this.log("Calling Enigma2 API with: " + call_spec);
-      const url = `https://${this.deviceData.ipAddress}/web/${call_spec}`;
+      const { protocol, host, isHttps } = this.getConnectionDetails();
+      const url = `${protocol}://${host}/web/${call_spec}`;
       const config = {
         method: 'get',
         url: url,
         auth: this.deviceData.username && this.deviceData.password ? {
           username: this.deviceData.username,
           password: this.deviceData.password
-        } : undefined,
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: false  // Bypass SSL certificate errors
-        })
+        } : undefined
       };
+      if (isHttps) {
+        config.httpsAgent = new https.Agent({
+          rejectUnauthorized: false  // Bypass SSL certificate errors
+        });
+      }
       //DEBUG
       //this.log("Calling Enigma2 API with: " + JSON.stringify(config));
       const response = await axios(config);
@@ -316,12 +333,18 @@ class enigma2_device extends Device {
 
     // Checking state of Enigma2
     this.registerConditionFlowCard('is_standby_on');
+
+    this.deviceUnavailableTrigger = this.homey.flow.getDeviceTriggerCard('device_unavailable');
+    this.deviceAvailableTrigger = this.homey.flow.getDeviceTriggerCard('device_available');
   }
 
   registerFlowCardAction(cardName, getCallSpec) {
     const actionCard = this.homey.flow.getActionCard(cardName);
     actionCard.registerRunListener(async (args) => {
-      const callSpec = getCallSpec();
+      const callSpec = await getCallSpec(args);
+      if (typeof callSpec !== 'string') {
+        return callSpec;
+      }
       return this.executeEnigma2Command(callSpec);
     });
   }
@@ -354,6 +377,39 @@ class enigma2_device extends Device {
       const isStandby = await this.checkStandbyState();
       return (cardName === 'is_standby_on') ? isStandby : !isStandby;
     });
+  }
+
+  async updateAvailability(isAvailable) {
+    const wasAvailable = this.getAvailable();
+
+    if (!this.availabilityInitialized) {
+      this.availabilityInitialized = true;
+      if (isAvailable) {
+        if (!wasAvailable) {
+          await this.setAvailable();
+        }
+      } else if (wasAvailable) {
+        await this.setUnavailable();
+      }
+      return;
+    }
+
+    if (isAvailable) {
+      if (!wasAvailable) {
+        await this.setAvailable();
+        if (this.deviceAvailableTrigger) {
+          await this.deviceAvailableTrigger.trigger(this, {}, {});
+        }
+      }
+      return;
+    }
+
+    if (wasAvailable) {
+      await this.setUnavailable();
+      if (this.deviceUnavailableTrigger) {
+        await this.deviceUnavailableTrigger.trigger(this, {}, {});
+      }
+    }
   }
 
   // Implement the onCapabilityOnOff method using the helper
@@ -499,16 +555,19 @@ class enigma2_device extends Device {
       if (serviceReferenceMatch) {
         serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
         if (this.previousStates.serviceReference !== serviceReference) {
-          const albumArtUrl = `https://${this.deviceData.ipAddress}/picon/${serviceReference}.png`;
+          const { protocol, host, isHttps } = this.getConnectionDetails();
+          const albumArtUrl = `${protocol}://${host}/picon/${serviceReference}.png`;
 
           try {
             // Set the album art using a stream
             this.albumArtImage.setStream(async (stream) => {
-              const instance = axios.create({
-                httpsAgent: new https.Agent({
+              const instanceConfig = {};
+              if (isHttps) {
+                instanceConfig.httpsAgent = new https.Agent({
                   rejectUnauthorized: false // Bypass SSL certificate errors
-                })
-              });
+                });
+              }
+              const instance = axios.create(instanceConfig);
 
               if (this.deviceData.username && this.deviceData.password) {
                 instance.defaults.auth = {

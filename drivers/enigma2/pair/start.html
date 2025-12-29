@@ -69,14 +69,16 @@
         console.log("Retrieving form data..."); // Log data retrieval
 
         var inputIpAddress = document.getElementById('IPAddress').value;
-        //var inputPort = document.getElementById('Port').value;
+        var inputPort = document.getElementById('Port').value;
+        var inputPollInterval = document.getElementById('PollInterval').value;
         var inputUsername = document.getElementById('Username').value;
         var inputPassword = document.getElementById('Password').value;
 
         // Create an object to store data
         var data = {
             IPAddress: inputIpAddress,
-          //  Port: inputPort,
+            Port: inputPort,
+            PollInterval: inputPollInterval,
             Username: inputUsername,
             Password: inputPassword
         };
@@ -87,10 +89,10 @@
     function validateFormData(data) {
         console.log("Validating form data:"); // Log data for validation
         var ipValid = /^([0-9]{1,3}\.){3}[0-9]{1,3}$/.test(data.IPAddress);
-        // var portValid = /^[0-9]+$/.test(data.Port) && parseInt(data.Port, 10) > 0 && parseInt(data.Port, 10) < 65536;
+        var portValid = /^[0-9]+$/.test(data.Port) && parseInt(data.Port, 10) > 0 && parseInt(data.Port, 10) < 65536;
+        var pollValid = /^[0-9]+$/.test(data.PollInterval) && parseInt(data.PollInterval, 10) >= 5 && parseInt(data.PollInterval, 10) <= 60;
 
-        // if (!ipValid || !portValid) {
-            if (!ipValid) {
+        if (!ipValid || !portValid || !pollValid) {
             Homey.alert(__('pair.start.invalidInput'), 'error');
             console.log("Data invalid"); // Log data retrieval
             return false;
@@ -106,6 +108,14 @@
         <tr>
             <td><span data-i18n="pair.start.ipAddress"></span></td>
             <td><input id="IPAddress" type="text" placeholder="192.168.1.10" /></td>
+        </tr>
+        <tr>
+            <td><span data-i18n="pair.start.port"></span></td>
+            <td><input id="Port" type="text" value="443" /></td>
+        </tr>
+        <tr>
+            <td><span data-i18n="pair.start.pollInterval"></span></td>
+            <td><input id="PollInterval" type="text" value="5" /></td>
         </tr>
         <tr>
             <td><span data-i18n="pair.start.username"></span></td>

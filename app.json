@@ -138,6 +138,40 @@
     "axios": "^0.27.2"
   },
   "flow": {
+    "triggers": [
+      {
+        "id": "device_available",
+        "title": {
+          "en": "Device becomes available"
+        },
+        "hint": {
+          "en": "Triggers when the device comes back online."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
+      },
+      {
+        "id": "device_unavailable",
+        "title": {
+          "en": "Device becomes unavailable"
+        },
+        "hint": {
+          "en": "Triggers when the device goes offline or becomes unavailable."
+        },
+        "args": [
+          {
+            "type": "device",
+            "name": "device",
+            "filter": "driver_id=enigma2"
+          }
+        ]
+      }
+    ],
     "conditions": [
       {
         "id": "is_standby_on",
@@ -539,6 +573,28 @@
           "value": "192.168.1.10",
           "hint": {
             "en": "Enter the IP address of your Enigma2 receiver."
+          }
+        },
+        {
+          "id": "Port",
+          "type": "number",
+          "label": {
+            "en": "Port"
+          },
+          "value": 443,
+          "hint": {
+            "en": "Enter the WebIF port (e.g., 443 for HTTPS or 80 for HTTP)."
+          }
+        },
+        {
+          "id": "PollInterval",
+          "type": "number",
+          "label": {
+            "en": "Poll interval (seconds)"
+          },
+          "value": 5,
+          "hint": {
+            "en": "Device state check interval. Minimum 5, maximum 60."
           }
         },
         {

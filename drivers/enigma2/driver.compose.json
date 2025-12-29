@@ -42,6 +42,28 @@
       }
     },
     {
+      "id": "Port",
+      "type": "number",
+      "label": {
+        "en": "Port"
+      },
+      "value": 443,
+      "hint": {
+        "en": "Enter the WebIF port (e.g., 443 for HTTPS or 80 for HTTP)."
+      }
+    },
+    {
+      "id": "PollInterval",
+      "type": "number",
+      "label": {
+        "en": "Poll interval (seconds)"
+      },
+      "value": 5,
+      "hint": {
+        "en": "Device state check interval. Minimum 5, maximum 60."
+      }
+    },
+    {
       "id": "Username",
       "type": "text",
       "label": {

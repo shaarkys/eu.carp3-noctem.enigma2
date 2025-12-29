@@ -23,9 +23,10 @@ class Enigma2Driver extends Homey.Driver {
         data: { id: data.IPAddress }, // Use IP address as unique ID
         settings: {
           IPAddress: data.IPAddress,
-          // port: data.Port,
-          username: data.Username,
-          password: data.Password
+          Port: data.Port,
+          PollInterval: data.PollInterval,
+          Username: data.Username,
+          Password: data.Password
         }
       }];
       session.emit('continue', null); // Proceed to the next step
@@ -80,18 +81,26 @@ class Enigma2Driver extends Homey.Driver {
   async callEnigma2(call_spec) {
     try {
       this.log("Calling Enigma2 API with: " + call_spec);
-      const url = `https://${this.deviceData.IPAddress}/web/${call_spec}`;
+      const portValue = this.deviceData && this.deviceData.Port ? String(this.deviceData.Port).trim() : '';
+      const portNumber = portValue ? Number(portValue) : null;
+      const port = Number.isInteger(portNumber) && portNumber > 0 ? portNumber : null;
+      const isHttps = !port || port === 443;
+      const protocol = isHttps ? 'https' : 'http';
+      const host = port ? `${this.deviceData.IPAddress}:${port}` : this.deviceData.IPAddress;
+      const url = `${protocol}://${host}/web/${call_spec}`;
       const config = {
         method: 'get',
         url: url,
         auth: this.deviceData.Username && this.deviceData.Password ? {
           username: this.deviceData.Username,
           password: this.deviceData.Password
-        } : undefined,
-        httpsAgent: new https.Agent({
-          rejectUnauthorized: false, // Bypass SSL certificate errors
-        })
+        } : undefined
       };
+      if (isHttps) {
+        config.httpsAgent = new https.Agent({
+          rejectUnauthorized: false, // Bypass SSL certificate errors
+        });
+      }
       this.log("Calling Enigma2 API with: " + JSON.stringify(config));
       const response = await axios(config);
       this.log(`Call sent to: ${url}`);

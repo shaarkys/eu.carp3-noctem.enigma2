@@ -1,0 +1,16 @@
+{
+  "id": "device_unavailable",
+  "title": {
+    "en": "Device becomes unavailable"
+  },
+  "hint": {
+    "en": "Triggers when the device goes offline or becomes unavailable."
+  },
+  "args": [
+    {
+      "type": "device",
+      "name": "device",
+      "filter": "driver_id=enigma2"
+    }
+  ]
+}

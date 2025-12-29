@@ -31,6 +31,7 @@
           "intro": "Bitte geben Sie die enigma2-Daten ein, mindestens IP und Port.",
           "ipAddress": "IP-Adresse",
           "port": "Port",
+          "pollInterval": "Abfrageintervall (Sekunden)",
           "username": "Benutzername",
           "password": "Passwort",
           "saveSettings": "Speichern",

@@ -31,6 +31,7 @@
           "intro": "Please enter the enigma2 details, minimum IP and port.",
           "ipAddress": "IP Address",
           "port": "Port",
+          "pollInterval": "Poll interval (seconds)",
           "username": "Username",
           "password": "Password",
           "saveSettings": "Save",
