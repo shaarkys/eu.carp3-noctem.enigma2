@@ -19,5 +19,8 @@
   },
   "1.2.3": {
     "en": "Old non-device flows depreciation (can't be added but still will be working)"
+  },
+  "1.2.4": {
+    "en": "Added Enigma2 availability trigger, added configurable polling interval, new app logo"
   }
 }
