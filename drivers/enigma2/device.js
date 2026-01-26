@@ -6,7 +6,7 @@ const axios = require('axios');
 const https = require('https');
 
 const DEFAULT_TEXT_ENCODING = 'utf-8';
-const FALLBACK_TEXT_ENCODINGS = ['utf-8', 'windows-1250', 'iso-8859-2', 'latin1'];
+const CENTRAL_EUROPEAN_ENCODINGS = ['windows-1250', 'iso-8859-2'];
 
 function normalizeEncodingName(encoding) {
   if (!encoding || typeof encoding !== 'string') {
@@ -45,12 +45,97 @@ function decodeBuffer(buffer, encoding) {
   }
 }
 
-function looksMojibake(text) {
-  if (!text) return false;
-  return /[\u00C2\u00C3]/.test(text) || text.includes('\uFFFD');
+function hasReplacementChars(text) {
+  return typeof text === 'string' && text.includes('\uFFFD');
 }
 
-function decodeEnigma2Response(buffer, contentType, preferredEncoding) {
+const ISO6937_ACUTE = '\u00C2';
+const ISO6937_CARON = '\u010E';
+const ISO6937_RING = '\u0118';
+const ISO6937_ACUTE_MAP = {
+  A: '\u00C1',
+  E: '\u00C9',
+  I: '\u00CD',
+  O: '\u00D3',
+  U: '\u00DA',
+  Y: '\u00DD',
+  a: '\u00E1',
+  e: '\u00E9',
+  i: '\u00ED',
+  o: '\u00F3',
+  u: '\u00FA',
+  y: '\u00FD',
+  C: '\u0106',
+  c: '\u0107',
+  N: '\u0143',
+  n: '\u0144',
+  R: '\u0154',
+  r: '\u0155',
+  S: '\u015A',
+  s: '\u015B',
+  Z: '\u0179',
+  z: '\u017A'
+};
+const ISO6937_CARON_MAP = {
+  C: '\u010C',
+  D: '\u010E',
+  E: '\u011A',
+  L: '\u013D',
+  N: '\u0147',
+  R: '\u0158',
+  S: '\u0160',
+  T: '\u0164',
+  Z: '\u017D',
+  c: '\u010D',
+  d: '\u010F',
+  e: '\u011B',
+  l: '\u013E',
+  n: '\u0148',
+  r: '\u0159',
+  s: '\u0161',
+  t: '\u0165',
+  z: '\u017E'
+};
+const ISO6937_RING_MAP = {
+  U: '\u016E',
+  u: '\u016F'
+};
+
+function decodeIso6937(text) {
+  if (!text) return text;
+  let output = '';
+  for (let index = 0; index < text.length; index += 1) {
+    const char = text[index];
+    if (char === ISO6937_ACUTE) {
+      const nextChar = text[index + 1];
+      if (nextChar && ISO6937_ACUTE_MAP[nextChar]) {
+        output += ISO6937_ACUTE_MAP[nextChar];
+        index += 1;
+        continue;
+      }
+    }
+    if (char === ISO6937_CARON) {
+      const nextChar = text[index + 1];
+      if (nextChar && ISO6937_CARON_MAP[nextChar]) {
+        output += ISO6937_CARON_MAP[nextChar];
+        index += 1;
+        continue;
+      }
+    }
+    if (char === ISO6937_RING) {
+      const nextChar = text[index + 1];
+      if (nextChar && ISO6937_RING_MAP[nextChar]) {
+        output += ISO6937_RING_MAP[nextChar];
+        index += 1;
+        continue;
+      }
+    }
+    output += char;
+  }
+  return output;
+}
+
+function decodeEnigma2Response(buffer, contentType) {
   if (!Buffer.isBuffer(buffer)) {
     return buffer;
   }
@@ -58,60 +143,31 @@ function decodeEnigma2Response(buffer, contentType, preferredEncoding) {
   const asciiText = buffer.toString('latin1');
   const xmlEncoding = normalizeEncodingName(extractXmlEncoding(asciiText));
   const headerEncoding = normalizeEncodingName(extractCharset(contentType));
-  const normalizedPreferred = normalizeEncodingName(preferredEncoding);
-  const triedEncodings = new Set();
-  const encodingCandidates = [];
+  const preferredEncodings = [];
 
-  if (normalizedPreferred && normalizedPreferred !== 'auto') {
-    const decodedPreferred = decodeBuffer(buffer, normalizedPreferred);
-    if (decodedPreferred) {
-      return decodedPreferred;
-    }
-  }
+  if (headerEncoding) preferredEncodings.push(headerEncoding);
+  if (xmlEncoding) preferredEncodings.push(xmlEncoding);
 
-  if (xmlEncoding) encodingCandidates.push(xmlEncoding);
-  if (headerEncoding) encodingCandidates.push(headerEncoding);
-  FALLBACK_TEXT_ENCODINGS.forEach((encoding) => encodingCandidates.push(encoding));
-
-  let fallbackDecoded = null;
-  for (const encoding of encodingCandidates) {
-    if (!encoding || triedEncodings.has(encoding)) continue;
-    triedEncodings.add(encoding);
+  for (const encoding of preferredEncodings) {
     const decoded = decodeBuffer(buffer, encoding);
-    if (!decoded) continue;
-    if (!fallbackDecoded) {
-      fallbackDecoded = decoded;
-    }
-    if (!looksMojibake(decoded)) {
-      return decoded;
+    if (decoded && !hasReplacementChars(decoded)) {
+      return decodeIso6937(decoded);
     }
   }
 
-  return fallbackDecoded || buffer.toString(DEFAULT_TEXT_ENCODING);
-}
-
-function decodeEnigma2Payload(payload, contentType, preferredEncoding) {
-  if (Buffer.isBuffer(payload)) {
-    return decodeEnigma2Response(payload, contentType, preferredEncoding);
+  const utf8Decoded = decodeBuffer(buffer, DEFAULT_TEXT_ENCODING);
+  if (utf8Decoded && !hasReplacementChars(utf8Decoded)) {
+    return decodeIso6937(utf8Decoded);
   }
 
-  if (typeof payload !== 'string') {
-    return payload;
+  for (const encoding of CENTRAL_EUROPEAN_ENCODINGS) {
+    const decoded = decodeBuffer(buffer, encoding);
+    if (decoded) {
+      return decodeIso6937(decoded);
+    }
   }
 
-  const normalizedPreferred = normalizeEncodingName(preferredEncoding);
-  if (normalizedPreferred && normalizedPreferred !== 'auto') {
-    const buffer = Buffer.from(payload, 'latin1');
-    const decoded = decodeBuffer(buffer, normalizedPreferred);
-    return decoded || payload;
-  }
-
-  if (!looksMojibake(payload)) {
-    return payload;
-  }
-
-  const buffer = Buffer.from(payload, 'latin1');
-  return decodeEnigma2Response(buffer, contentType, preferredEncoding);
+  return decodeIso6937(buffer.toString(DEFAULT_TEXT_ENCODING));
 }
 
 function parseDeviceInfo(xml) {
@@ -303,12 +359,6 @@ class enigma2_device extends Device {
     const pollNumber = pollValue ? Number(pollValue) : null;
     const pollSeconds = Number.isInteger(pollNumber) ? Math.min(Math.max(pollNumber, 5), 60) : 5;
     this.pollingIntervalMs = pollSeconds * 1000;
-    const encodingValue = settings.TextEncoding !== undefined && settings.TextEncoding !== null
-      ? String(settings.TextEncoding).trim()
-      : '';
-    const normalizedEncoding = normalizeEncodingName(encodingValue);
-    this.textEncoding = normalizedEncoding && normalizedEncoding !== 'auto' ? normalizedEncoding : null;
-
     this.deviceData = {
       ipAddress: settings.IPAddress,
       port: port,
@@ -319,7 +369,7 @@ class enigma2_device extends Device {
 
   async onSettings({ oldSettings, newSettings, changedKeys }) {
     this.log('enigma2 device settings were changed');
-    if (changedKeys.some(key => ['IPAddress', 'Port', 'Username', 'Password', 'PollInterval', 'TextEncoding'].includes(key))) {
+    if (changedKeys.some(key => ['IPAddress', 'Port', 'Username', 'Password', 'PollInterval'].includes(key))) {
       this.updateSettings(newSettings);
       // Add any additional logic needed when settings change
     }
@@ -394,10 +444,12 @@ class enigma2_device extends Device {
       this.log(`Call sent to: ${url}`);
       // DEBUG
       //   this.log("API Response:", response.data); // Log the API response
-      return decodeEnigma2Payload(
-        response.data,
-        response.headers && response.headers['content-type'],
-        this.textEncoding
+      const responseBuffer = Buffer.isBuffer(response.data)
+        ? response.data
+        : Buffer.from(response.data);
+      return decodeEnigma2Response(
+        responseBuffer,
+        response.headers && response.headers['content-type']
       );
 
     } catch (error) {

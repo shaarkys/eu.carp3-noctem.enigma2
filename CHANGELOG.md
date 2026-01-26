@@ -1,6 +1,4 @@
 # Changelog
 
 ## [Unreleased]
-- Add device setting to force text encoding for Enigma2 program titles.
-- Improve response decoding using headers/XML charset with Central European fallbacks.
-- Repair mojibake when the HTTP client returns already-decoded text.
+- Decode Enigma2 XML from raw bytes and apply ISO-6937 accents for Czech/Slovak titles.
