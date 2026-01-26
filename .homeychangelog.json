@@ -25,5 +25,8 @@
   },
   "1.2.5": {
     "en": "Add a device setting to force text encoding for Enigma2 titles"
+  },
+  "1.2.6": {
+    "en": "Decode Enigma2 XML from raw bytes and apply ISO-6937 accents for Czech/Slovak titles."
   }
 }
