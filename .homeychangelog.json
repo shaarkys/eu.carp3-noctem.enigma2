@@ -22,5 +22,8 @@
   },
   "1.2.4": {
     "en": "Added Enigma2 availability trigger, added configurable polling interval, new app logo"
+  },
+  "1.2.5": {
+    "en": "Add a device setting to force text encoding for Enigma2 titles"
   }
 }
