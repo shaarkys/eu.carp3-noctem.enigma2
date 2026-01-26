@@ -84,6 +84,67 @@
       "hint": {
         "en": "Enter the password for your Enigma2 receiver, if applicable."
       }
+    },
+    {
+      "id": "TextEncoding",
+      "type": "dropdown",
+      "label": {
+        "en": "Text encoding"
+      },
+      "value": "auto",
+      "hint": {
+        "en": "Use auto unless channel titles show corrupted characters."
+      },
+      "values": [
+        {
+          "id": "auto",
+          "label": {
+            "en": "Auto (recommended)"
+          }
+        },
+        {
+          "id": "utf-8",
+          "label": {
+            "en": "UTF-8"
+          }
+        },
+        {
+          "id": "windows-1250",
+          "label": {
+            "en": "Windows-1250 (Central European)"
+          }
+        },
+        {
+          "id": "iso-8859-2",
+          "label": {
+            "en": "ISO-8859-2 (Central European)"
+          }
+        },
+        {
+          "id": "windows-1251",
+          "label": {
+            "en": "Windows-1251 (Cyrillic)"
+          }
+        },
+        {
+          "id": "iso-8859-7",
+          "label": {
+            "en": "ISO-8859-7 (Greek)"
+          }
+        },
+        {
+          "id": "windows-1254",
+          "label": {
+            "en": "Windows-1254 (Turkish)"
+          }
+        },
+        {
+          "id": "latin1",
+          "label": {
+            "en": "ISO-8859-1 (Western European)"
+          }
+        }
+      ]
     }
   ],
   "pair": [

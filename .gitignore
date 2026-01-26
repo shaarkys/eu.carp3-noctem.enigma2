@@ -7,3 +7,4 @@ node_modules/*
 /.homeybuild/
 ChatGPT_feed.ps1
 chatgpt_input.txt
+AGENTS.md

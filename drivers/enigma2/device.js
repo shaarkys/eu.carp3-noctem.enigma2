@@ -5,6 +5,115 @@ const { Image, ManagerImages } = require('homey');
 const axios = require('axios');
 const https = require('https');
 
+const DEFAULT_TEXT_ENCODING = 'utf-8';
+const FALLBACK_TEXT_ENCODINGS = ['utf-8', 'windows-1250', 'iso-8859-2', 'latin1'];
+
+function normalizeEncodingName(encoding) {
+  if (!encoding || typeof encoding !== 'string') {
+    return null;
+  }
+  const normalized = encoding.trim().toLowerCase();
+  if (normalized === 'utf8') return 'utf-8';
+  if (normalized === 'latin-1') return 'latin1';
+  if (normalized === 'cp1250' || normalized === 'windows1250') return 'windows-1250';
+  if (normalized === 'latin2') return 'iso-8859-2';
+  return normalized;
+}
+
+function extractXmlEncoding(text) {
+  if (!text) return null;
+  const match = text.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"][^>]*\?>/i);
+  return match ? match[1] : null;
+}
+
+function extractCharset(contentType) {
+  if (!contentType || typeof contentType !== 'string') return null;
+  const match = contentType.match(/charset=([^;]+)/i);
+  return match ? match[1] : null;
+}
+
+function decodeBuffer(buffer, encoding) {
+  const normalized = normalizeEncodingName(encoding);
+  if (!normalized) return null;
+  if (normalized === 'utf-8') return buffer.toString('utf8');
+  if (normalized === 'latin1') return buffer.toString('latin1');
+  if (typeof TextDecoder !== 'function') return null;
+  try {
+    return new TextDecoder(normalized).decode(buffer);
+  } catch (error) {
+    return null;
+  }
+}
+
+function looksMojibake(text) {
+  if (!text) return false;
+  return /[\u00C2\u00C3]/.test(text) || text.includes('\uFFFD');
+}
+
+function decodeEnigma2Response(buffer, contentType, preferredEncoding) {
+  if (!Buffer.isBuffer(buffer)) {
+    return buffer;
+  }
+
+  const asciiText = buffer.toString('latin1');
+  const xmlEncoding = normalizeEncodingName(extractXmlEncoding(asciiText));
+  const headerEncoding = normalizeEncodingName(extractCharset(contentType));
+  const normalizedPreferred = normalizeEncodingName(preferredEncoding);
+  const triedEncodings = new Set();
+  const encodingCandidates = [];
+
+  if (normalizedPreferred && normalizedPreferred !== 'auto') {
+    const decodedPreferred = decodeBuffer(buffer, normalizedPreferred);
+    if (decodedPreferred) {
+      return decodedPreferred;
+    }
+  }
+
+  if (xmlEncoding) encodingCandidates.push(xmlEncoding);
+  if (headerEncoding) encodingCandidates.push(headerEncoding);
+  FALLBACK_TEXT_ENCODINGS.forEach((encoding) => encodingCandidates.push(encoding));
+
+  let fallbackDecoded = null;
+  for (const encoding of encodingCandidates) {
+    if (!encoding || triedEncodings.has(encoding)) continue;
+    triedEncodings.add(encoding);
+    const decoded = decodeBuffer(buffer, encoding);
+    if (!decoded) continue;
+    if (!fallbackDecoded) {
+      fallbackDecoded = decoded;
+    }
+    if (!looksMojibake(decoded)) {
+      return decoded;
+    }
+  }
+
+  return fallbackDecoded || buffer.toString(DEFAULT_TEXT_ENCODING);
+}
+
+function decodeEnigma2Payload(payload, contentType, preferredEncoding) {
+  if (Buffer.isBuffer(payload)) {
+    return decodeEnigma2Response(payload, contentType, preferredEncoding);
+  }
+
+  if (typeof payload !== 'string') {
+    return payload;
+  }
+
+  const normalizedPreferred = normalizeEncodingName(preferredEncoding);
+  if (normalizedPreferred && normalizedPreferred !== 'auto') {
+    const buffer = Buffer.from(payload, 'latin1');
+    const decoded = decodeBuffer(buffer, normalizedPreferred);
+    return decoded || payload;
+  }
+
+  if (!looksMojibake(payload)) {
+    return payload;
+  }
+
+  const buffer = Buffer.from(payload, 'latin1');
+  return decodeEnigma2Response(buffer, contentType, preferredEncoding);
+}
+
 function parseDeviceInfo(xml) {
   const getValue = (tag) => {
     const openTag = `<${tag}>`;
@@ -194,6 +303,11 @@ class enigma2_device extends Device {
     const pollNumber = pollValue ? Number(pollValue) : null;
     const pollSeconds = Number.isInteger(pollNumber) ? Math.min(Math.max(pollNumber, 5), 60) : 5;
     this.pollingIntervalMs = pollSeconds * 1000;
+    const encodingValue = settings.TextEncoding !== undefined && settings.TextEncoding !== null
+      ? String(settings.TextEncoding).trim()
+      : '';
+    const normalizedEncoding = normalizeEncodingName(encodingValue);
+    this.textEncoding = normalizedEncoding && normalizedEncoding !== 'auto' ? normalizedEncoding : null;
 
     this.deviceData = {
       ipAddress: settings.IPAddress,
@@ -205,7 +319,7 @@ class enigma2_device extends Device {
 
   async onSettings({ oldSettings, newSettings, changedKeys }) {
     this.log('enigma2 device settings were changed');
-    if (changedKeys.some(key => ['IPAddress', 'Port', 'Username', 'Password', 'PollInterval'].includes(key))) {
+    if (changedKeys.some(key => ['IPAddress', 'Port', 'Username', 'Password', 'PollInterval', 'TextEncoding'].includes(key))) {
       this.updateSettings(newSettings);
       // Add any additional logic needed when settings change
     }
@@ -272,13 +386,19 @@ class enigma2_device extends Device {
           rejectUnauthorized: false  // Bypass SSL certificate errors
         });
       }
+      config.responseType = 'arraybuffer';
+      config.transformResponse = (data) => data;
       //DEBUG
       //this.log("Calling Enigma2 API with: " + JSON.stringify(config));
       const response = await axios(config);
       this.log(`Call sent to: ${url}`);
       // DEBUG
       //   this.log("API Response:", response.data); // Log the API response
-      return response.data; // Returning the raw XML response
+      return decodeEnigma2Payload(
+        response.data,
+        response.headers && response.headers['content-type'],
+        this.textEncoding
+      );
 
     } catch (error) {
       this.error(`Call to Enigma2 failed: ${error.message}`);
