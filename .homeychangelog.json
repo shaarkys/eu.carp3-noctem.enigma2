@@ -28,5 +28,8 @@
   },
   "1.2.6": {
     "en": "Decode Enigma2 XML from raw bytes and apply ISO-6937 accents for Czech/Slovak titles."
+  },
+  "1.2.7": {
+    "en": "Fixed receiver targeting, standby and mute Flows, polling and playback recovery; hardened pairing, messages, HTTPS, error handling and dependencies, with regression coverage."
   }
 }
