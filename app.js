@@ -1,140 +1,98 @@
 'use strict';
+
 const Homey = require('homey');
-const axios = require('axios');
+const { Enigma2Client, normalizeSettings, commandFor, booleanTag } = require('./lib/enigma2');
 
 class Enigma2 extends Homey.App {
-    async onInit() {
-        this.log("enigma2 app started successfully");
+  async onInit() {
+    this.log('enigma2 app started successfully');
+    this.legacyQueue = Promise.resolve();
+    this.stopped = false;
+    this.testClients = new Set();
+    this.registerFlowCards();
+  }
 
-        this.enigma2_ip = await this.homey.settings.get('enigma2_ip');
-        this.enigma2_port = await this.homey.settings.get('enigma2_port');
-        this.enigma2_username = await this.homey.settings.get('enigma2_username');
-        this.enigma2_password = await this.homey.settings.get('enigma2_password');
-        this.enigma2_host = `${this.enigma2_ip}:${this.enigma2_port}`;
+  legacySettings() {
+    const get = key => this.homey.settings.get(`enigma2_${key}`);
+    return normalizeSettings({
+      IPAddress: get('ip'), Port: get('port') || 80,
+      Username: get('username'), Password: get('password'),
+      // Legacy app-wide connections were HTTP regardless of port.
+      Protocol: get('protocol') || 'http', AllowSelfSigned: get('allow_self_signed') !== false
+    });
+  }
 
-        this.registerFlowCards();
+  withLegacyClient(operation) {
+    const run = (this.legacyQueue || Promise.resolve()).then(async () => {
+      if (this.stopped) throw new Error('App is stopping');
+      const settings = this.legacySettings();
+      if (!this.legacyClient || JSON.stringify(settings) !== JSON.stringify(this.legacyClient.settings)) {
+        if (this.legacyClient) this.legacyClient.close();
+        this.legacyClient = new Enigma2Client(settings);
+      }
+      return operation(this.legacyClient);
+    });
+    this.legacyQueue = run.catch(() => {});
+    return run;
+  }
+
+  callEnigma2(spec) {
+    return this.withLegacyClient(client => client.call(spec));
+  }
+
+  checkStandbyState() {
+    return this.withLegacyClient(async client => booleanTag(await client.call('powerstate'), 'e2instandby'));
+  }
+
+  async testConnection(settings) {
+    if (this.stopped) throw new Error('App is stopping');
+    const client = new Enigma2Client(settings);
+    this.testClients.add(client);
+    try {
+      await client.call('deviceinfo');
+      return true;
+    } finally {
+      this.testClients.delete(client);
+      client.close();
     }
+  }
 
-    async callEnigma2(call_spec) {
-        try {
-            const config = {
-                url: `http://${this.enigma2_host}/web/${call_spec}`,
-                method: 'get'
-            };
-
-            // Add authentication if username and password are provided
-            if (this.enigma2_username && this.enigma2_password) {
-                config.auth = {
-                    username: this.enigma2_username,
-                    password: this.enigma2_password
-                };
-            }
-
-            const response = await axios(config);
-            this.log('Following Call was send: ' + response.config.url + ' to ' + this.enigma2_host);
-            this.log('Previous Call was made successfully.');
-        } catch (error) {
-            this.error('Previous Call Failed! Maybe wrong Configuration?');
-            this.error(error);
-        }
+  registerFlowCards() {
+    const actions = ['command_send', 'message_send', 'powerstate_deepstandby', 'powerstate_reboot', 'powerstate_restart_enigma2', 'powerstate_on', 'powerstate_off'];
+    for (const action of actions) {
+      this.homey.flow.getActionCard(action).registerRunListener(async args => {
+        await this.callEnigma2(commandFor(action, args));
+        return true;
+      });
+      this.homey.flow.getActionCard(`${action}_device`).registerRunListener(async args => {
+        if (!args.device) throw new Error('Select an Enigma2 receiver');
+        await args.device.executeEnigma2Command(commandFor(action, args));
+        return true;
+      });
     }
-	
-    registerFlowCards() {
-        // Command Send Action
-        this.registerFlowCardAction('command_send', (args) => `remotecontrol?command=${args.command}`);
-
-        // Message Send Action
-        this.registerFlowCardAction('message_send', (args) => {
-            const message_complete = args.msg_text_full;
-            const message_split = message_complete.split("|");
-            const msg_type = message_split[0];
-            const timeout = message_split[1];
-            const msg_txt = message_split[2];
-            const msg_timeout = timeout === 0 ? "" : timeout;
-            return `message?text=${msg_txt}&type=${msg_type}&timeout=${msg_timeout}`;
-        });
-
-        // Powerstate Deep Standby Action
-        this.registerFlowCardAction('powerstate_deepstandby', () => 'powerstate?newstate=1');
-
-        // Powerstate Reboot Action
-        this.registerFlowCardAction('powerstate_reboot', () => 'powerstate?newstate=2');
-
-        // Restart Enigma2 Action
-        this.registerFlowCardAction('powerstate_restart_enigma2', () => 'powerstate?newstate=3');
-
-        // Powerstate On Action
-        this.registerFlowCardAction('powerstate_on', () => 'powerstate?newstate=4');
-
-        // Powerstate Off Action
-        this.registerFlowCardAction('powerstate_off', () => 'powerstate?newstate=5');
-
-        // Volume Set Action
-        this.registerFlowCardAction('vol_set', (args) => `vol?set=set${args.volume}`);
-
-        // Volume Mute Action
-        this.registerFlowCardAction('vol_mute', () => 'vol?set=mute');
-
-        // Volume Unmute Action
-        this.registerFlowCardAction('vol_unmute', () => 'vol?set=unmute');
-		
-		// Checking state of Enigma2
-		this.registerConditionFlowCard('is_standby_on');
+    this.homey.flow.getActionCard('vol_set').registerRunListener(async args => {
+      await this.callEnigma2(commandFor('vol_set', args));
+      return true;
+    });
+    for (const [id, muted] of [['vol_mute', true], ['vol_unmute', false]]) {
+      this.homey.flow.getActionCard(id).registerRunListener(async () => {
+        await this.withLegacyClient(client => client.setMuted(muted));
+        return true;
+      });
     }
+    this.homey.flow.getConditionCard('is_standby_on').registerRunListener(() => this.checkStandbyState());
+    this.homey.flow.getConditionCard('is_standby_on_device').registerRunListener(args => {
+      if (!args.device) throw new Error('Select an Enigma2 receiver');
+      return args.device.checkStandbyState();
+    });
+  }
 
-    registerFlowCardAction(cardName, getCallSpec) {
-        const actionCard = this.homey.flow.getActionCard(cardName);
-        actionCard.registerRunListener(async (args) => {
-            const call_spec = getCallSpec(args);
-            await this.callEnigma2(call_spec);
-            return true;
-        });
-    }
-	
-		async checkStandbyState() {
-			try {
-				const config = {
-					url: `http://${this.enigma2_host}/web/powerstate`,
-					method: 'get'
-				};
-
-				// Add authentication if username and password are provided
-				if (this.enigma2_username && this.enigma2_password) {
-					config.auth = {
-						username: this.enigma2_username,
-						password: this.enigma2_password
-					};
-				}
-
-				const response = await axios(config);
-				const powerState = response.data;
-				this.log('Enigma2 power state response:', powerState);
-
-				// Use regular expression to extract standby state
-				const match = powerState.match(/<e2instandby>\s*(.*?)\s*<\/e2instandby>/);
-				const isStandby = match && match[1] === 'true';
-
-				if (isStandby) {
-					this.log('Enigma2 is currently in standby mode.');
-				} else {
-					this.log('Enigma2 is currently active (not in standby mode).');
-				}
-
-				return isStandby;
-			} catch (error) {
-				this.error('Error checking standby state:', error);
-				return false;
-			}
-		}
-
-
-	registerConditionFlowCard(cardName) {
-			const conditionCard = this.homey.flow.getConditionCard(cardName);
-			conditionCard.registerRunListener(async (args) => {
-				const isStandby = await this.checkStandbyState();
-				return (cardName === 'is_standby_on') ? isStandby : !isStandby;
-			});
-		}
+  async onUninit() {
+    this.stopped = true;
+    if (this.legacyClient) this.legacyClient.close();
+    for (const client of this.testClients || []) client.close();
+    if (this.legacyQueue) await this.legacyQueue;
+  }
 }
 
 module.exports = Enigma2;

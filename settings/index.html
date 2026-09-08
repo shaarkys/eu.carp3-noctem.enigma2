@@ -1,8 +1,8 @@
 <!doctype html>
 <html>
 <head>
+        <script src="settings.js"></script>
         <script type="text/javascript" src="/homey.js" data-origin="settings"></script>
-		<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
    <h1><p style="color: #c00; font-weight: bold; text-align: center" data-i18n="settings.header"></p></h1>
@@ -64,93 +64,12 @@
 						</td>
 						<td style="width: 30%">&nbsp;</td>
 					</tr>
+            <tr><td></td><td><label for="enigma2_protocol" data-i18n="pair.start.protocol"></label></td><td></td><td><select id="enigma2_protocol"><option value="http">HTTP</option><option value="https">HTTPS</option><option value="auto" data-i18n="pair.start.auto"></option></select></td></tr>
+            <tr><td></td><td><label for="enigma2_allow_self_signed" data-i18n="pair.start.allowSelfSigned"></label></td><td></td><td><input id="enigma2_allow_self_signed" type="checkbox" checked /></td></tr>
         </table>
         <p data-i18n="settings.restart"></p>
     </fieldset>
-		<script type="text/javascript">
-		function onHomeyReady( Homey ){
-			Homey.ready();
-
-			var enigma2_ipElement = document.getElementById('enigma2_ip');
-			var enigma2_portElement = document.getElementById('enigma2_port');
-			var enigma2_usernameElement = document.getElementById('enigma2_username');
-			var enigma2_passwordElement = document.getElementById('enigma2_password');
-			var saveElement = document.getElementById('save');
-			var testElement = document.getElementById('test');
-
-			//document.getElementById('save').disabled = true; // Disable save button initially
-			
-			console.log('Obtaining connection settings...');
-			// Get existing settings and populate the fields
-			Homey.get('enigma2_ip', function( err, enigma2_ip ) {
-			   if( err ) return Homey.alert( err );
-			   enigma2_ipElement.value = enigma2_ip;
-			});
-
-			Homey.get('enigma2_port', function( err, enigma2_port ) {
-			   if( err ) return Homey.alert( err );
-			   enigma2_portElement.value = enigma2_port;
-			});
-
-			Homey.get('enigma2_username', function( err, enigma2_username ) {
-			   if( err ) return Homey.alert( err );
-			   enigma2_usernameElement.value = enigma2_username;
-			});
-
-			Homey.get('enigma2_password', function( err, enigma2_password ) {
-			   if( err ) return Homey.alert( err );
-			   enigma2_passwordElement.value = enigma2_password;
-			});
-
-			saveElement.addEventListener('click', function(e) {
-				console.log('Saving connection settings...');
-				Homey.set('enigma2_ip', enigma2_ipElement.value, function( err ){
-					if( err ) return Homey.alert( err );
-				});
-				Homey.set('enigma2_port', enigma2_portElement.value, function( err ){
-					if( err ) return Homey.alert( err );
-				});
-				Homey.set('enigma2_username', enigma2_usernameElement.value, function( err ){
-					if( err ) return Homey.alert( err );
-				});
-				Homey.set('enigma2_password', enigma2_passwordElement.value, function( err ){
-					if( err ) return Homey.alert( err );
-				});
-			});
-			       	
-            testElement.addEventListener('click', function() {
-				
-                var ipAddress = document.getElementById('enigma2_ip').value;
-                var port = document.getElementById('enigma2_port').value;
-                var username = document.getElementById('enigma2_username').value;
-                var password = document.getElementById('enigma2_password').value;
-
-                // Construct the URL for testing
-                var testUrl = `http://${ipAddress}:${port}/web/powerstate`;
-                var config = {
-                    method: 'get',
-                    url: testUrl
-                };
-				
-                // Add authentication if provided
-                if (username && password) {
-                    config.auth = { username: username, password: password };
-                }
-				console.log('Testing connection...');
-                // Perform the test request
-                axios(config).then(function (response) {
-                    console.log('Connection succesfull...');
-					Homey.alert("Connection successful " + response, "info");
-                    document.getElementById('save').disabled = false; // Enable save button on success
-                }).catch(function (error) {
-					console.log('Connection FAILED...');
-                    Homey.alert("Connection failed " + error, "error");
-                    document.getElementById('save').disabled = true; // Keep save button disabled on failure
-                });
-            });
 		
-		}
-		</script>
     </br>
     </br>
     </br>

@@ -13,93 +13,34 @@
 <script>
     Homey.setTitle(__('pair.start.title'));
 
-    Homey.on('error', function (errortype, callback) {
-        let errorMessage;
-
-        switch (errortype) {
-            case 'error':
-                errorMessage = __('pair.start.error');
-                break;
-            case 'nosettings':
-                errorMessage = __('pair.start.nosettings');
-                break;
-            case 'session_not_found': // Add a case for 'session_not_found' or similar if relevant
-                errorMessage = __('pair.start.session_not_found');
-                break;
-            default:
-                errorMessage = __('pair.start.unknown_error');
-                break;
-        }
-
-        if (errorMessage) {
-            Homey.alert(errorMessage, 'error');
-            Homey.done();
-        }
-    });
-
-    function saveSettings() {
-        var data = getFormData();
-        if (!validateFormData(data)) {
-            return;
-        }
-        console.log("Sending data to backend:", data); // Log data before sending
-        Homey.emit('get_devices', data);
-        Homey.showView('get_devices');
+    function getFormData() {
+        return {
+            IPAddress: document.getElementById('IPAddress').value.trim(),
+            Port: document.getElementById('Port').value,
+            PollInterval: document.getElementById('PollInterval').value,
+            Username: document.getElementById('Username').value,
+            Password: document.getElementById('Password').value,
+            Protocol: document.getElementById('Protocol').value,
+            AllowSelfSigned: document.getElementById('AllowSelfSigned').checked
+        };
     }
 
-    function testConnection() {
-        var data = getFormData();
-        if (!validateFormData(data)) {
-            return;
-        }
-
-        console.log("Testing connection with data:", data); // Log data before testing
-
-        Homey.emit('test_connection', data, function (err, result) {
-            if (err) {
-                Homey.alert(__('pair.start.connection_failed'), 'error');
-            } else {
-                Homey.alert(__('pair.start.connection_success'), 'info'); // Assuming you have this key in your locales
-            }
+    function saveSettings() {
+        var button = document.getElementById('saveSettings');
+        button.disabled = true;
+        Homey.emit('get_devices', getFormData(), function (err) {
+            button.disabled = false;
+            if (err) return Homey.alert(err.message || String(err), 'error');
+            Homey.showView('get_devices');
         });
     }
 
-    function getFormData() {
-
-        console.log("Retrieving form data..."); // Log data retrieval
-
-        var inputIpAddress = document.getElementById('IPAddress').value;
-        var inputPort = document.getElementById('Port').value;
-        var inputPollInterval = document.getElementById('PollInterval').value;
-        var inputUsername = document.getElementById('Username').value;
-        var inputPassword = document.getElementById('Password').value;
-
-        // Create an object to store data
-        var data = {
-            IPAddress: inputIpAddress,
-            Port: inputPort,
-            PollInterval: inputPollInterval,
-            Username: inputUsername,
-            Password: inputPassword
-        };
-        console.log("Retrieved form data : ", data); // Log data retrieval
-        return data;
+    function testConnection() {
+        Homey.emit('test_connection', getFormData(), function (err) {
+            if (err) return Homey.alert(__('pair.start.connection_failed') + ' ' + (err.message || String(err)), 'error');
+            Homey.alert(__('pair.start.connection_success'), 'info');
+        });
     }
-
-    function validateFormData(data) {
-        console.log("Validating form data:"); // Log data for validation
-        var ipValid = /^([0-9]{1,3}\.){3}[0-9]{1,3}$/.test(data.IPAddress);
-        var portValid = /^[0-9]+$/.test(data.Port) && parseInt(data.Port, 10) > 0 && parseInt(data.Port, 10) < 65536;
-        var pollValid = /^[0-9]+$/.test(data.PollInterval) && parseInt(data.PollInterval, 10) >= 5 && parseInt(data.PollInterval, 10) <= 60;
-
-        if (!ipValid || !portValid || !pollValid) {
-            Homey.alert(__('pair.start.invalidInput'), 'error');
-            console.log("Data invalid"); // Log data retrieval
-            return false;
-        }
-        return true;
-    }
-
 </script>
 
 <div>
@@ -111,11 +52,11 @@
         </tr>
         <tr>
             <td><span data-i18n="pair.start.port"></span></td>
-            <td><input id="Port" type="text" value="443" /></td>
+            <td><input id="Port" type="number" min="1" max="65535" step="1" value="443" /></td>
         </tr>
         <tr>
             <td><span data-i18n="pair.start.pollInterval"></span></td>
-            <td><input id="PollInterval" type="text" value="5" /></td>
+            <td><input id="PollInterval" type="number" min="5" max="60" step="1" value="5" /></td>
         </tr>
         <tr>
             <td><span data-i18n="pair.start.username"></span></td>
@@ -124,6 +65,14 @@
         <tr>
             <td><span data-i18n="pair.start.password"></span></td>
             <td><input id="Password" type="password" /></td>
+        </tr>
+        <tr>
+            <td><span data-i18n="pair.start.protocol"></span></td>
+            <td><select id="Protocol"><option value="auto" data-i18n="pair.start.auto"></option><option value="http">HTTP</option><option value="https">HTTPS</option></select></td>
+        </tr>
+        <tr>
+            <td><label for="AllowSelfSigned" data-i18n="pair.start.allowSelfSigned"></label></td>
+            <td><input id="AllowSelfSigned" type="checkbox" checked /></td>
         </tr>
     </table>
     <fieldset style="text-align: center;">

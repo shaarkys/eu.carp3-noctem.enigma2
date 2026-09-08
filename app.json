@@ -134,8 +134,15 @@
   "bugs": {
     "url": "https://github.com/shaarkys/eu.carp3-noctem.enigma2/issues"
   },
-  "dependencies": {
-    "axios": "^0.27.2"
+  "api": {
+    "testConnection": {
+      "method": "POST",
+      "path": "/test_connection"
+    },
+    "saveConnection": {
+      "method": "POST",
+      "path": "/connection"
+    }
   },
   "flow": {
     "triggers": [
@@ -584,6 +591,56 @@
           "value": 443,
           "hint": {
             "en": "Enter the WebIF port (e.g., 443 for HTTPS or 80 for HTTP)."
+          },
+          "min": 1,
+          "max": 65535,
+          "step": 1
+        },
+        {
+          "id": "Protocol",
+          "type": "dropdown",
+          "value": "auto",
+          "label": {
+            "en": "Connection protocol",
+            "de": "Verbindungsprotokoll",
+            "nl": "Verbindingsprotocol"
+          },
+          "values": [
+            {
+              "id": "auto",
+              "label": {
+                "en": "Automatic (HTTPS on port 443)",
+                "de": "Automatisch (HTTPS auf Port 443)",
+                "nl": "Automatisch (HTTPS op poort 443)"
+              }
+            },
+            {
+              "id": "http",
+              "label": {
+                "en": "HTTP"
+              }
+            },
+            {
+              "id": "https",
+              "label": {
+                "en": "HTTPS"
+              }
+            }
+          ]
+        },
+        {
+          "id": "AllowSelfSigned",
+          "type": "checkbox",
+          "value": true,
+          "label": {
+            "en": "Allow untrusted certificates",
+            "de": "Nicht vertrauenswürdige Zertifikate zulassen",
+            "nl": "Niet-vertrouwde certificaten toestaan"
+          },
+          "hint": {
+            "en": "Disable to verify the HTTPS certificate. Enabled by default for compatibility with existing receivers.",
+            "de": "Deaktivieren, um das HTTPS-Zertifikat zu prüfen. Für bestehende Receiver standardmäßig aktiviert.",
+            "nl": "Schakel uit om het HTTPS-certificaat te controleren. Standaard aan voor bestaande ontvangers."
           }
         },
         {
@@ -595,7 +652,10 @@
           "value": 5,
           "hint": {
             "en": "Device state check interval. Minimum 5, maximum 60."
-          }
+          },
+          "min": 5,
+          "max": 60,
+          "step": 1
         },
         {
           "id": "Username",

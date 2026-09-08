@@ -133,9 +133,6 @@
   "bugs": {
     "url": "https://github.com/shaarkys/eu.carp3-noctem.enigma2/issues"
   },
-  "dependencies": {
-    "axios": "^0.27.2"
-  },
   "drivers": [
     {
       "id": "enigma2",
@@ -230,5 +227,15 @@
         }
       ]
     }
-  ]
+  ],
+  "api": {
+    "testConnection": {
+      "method": "POST",
+      "path": "/test_connection"
+    },
+    "saveConnection": {
+      "method": "POST",
+      "path": "/connection"
+    }
+  }
 }

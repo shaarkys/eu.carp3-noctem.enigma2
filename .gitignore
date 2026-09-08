@@ -8,3 +8,4 @@ node_modules/*
 ChatGPT_feed.ps1
 chatgpt_input.txt
 AGENTS.md
+/node_modules

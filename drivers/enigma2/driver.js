@@ -1,120 +1,53 @@
 'use strict';
 
 const Homey = require('homey');
-const axios = require('axios');
-const https = require('https');
+const { Enigma2Client, normalizeSettings } = require('../../lib/enigma2');
 
 class Enigma2Driver extends Homey.Driver {
-
   async onInit() {
-    this.log('Enigma2Driver has been initialized');
+    this.log('Enigma2Driver initialized');
   }
 
   async onPair(session) {
-
-    // Handle the get_devices event
-    session.setHandler('get_devices', async (data) => {
-      this.log("Received get_devices data: " + JSON.stringify(data));
-      this.deviceData = data; // Store the received data for later use
-      // Extract the last part of the IP address
-      const lastSegmentOfIP = data.IPAddress.split('.').pop();
-      const devices = [{
-        name: 'Enigma2 Receiver IP.' + lastSegmentOfIP,
-        data: { id: data.IPAddress }, // Use IP address as unique ID
-        settings: {
-          IPAddress: data.IPAddress,
-          Port: data.Port,
-          PollInterval: data.PollInterval,
-          Username: data.Username,
-          Password: data.Password
-        }
-      }];
-      session.emit('continue', null); // Proceed to the next step
+    let deviceData;
+    let disconnected = false;
+    const clients = new Set();
+    const test = async settings => {
+      if (disconnected) throw new Error('Pairing session ended');
+      const client = new Enigma2Client(settings);
+      clients.add(client);
+      try {
+        await client.call('deviceinfo');
+        if (disconnected) throw new Error('Pairing session ended');
+        return true;
+      } finally {
+        clients.delete(client);
+        client.close();
+      }
+    };
+    session.setHandler('get_devices', async data => {
+      deviceData = normalizeSettings(data);
+      return true;
     });
-
-    // Handle device listing
     session.setHandler('list_devices', async () => {
-      if (!this.deviceData || !this.deviceData.IPAddress) {
-        throw new Error('No device data provided');
-      }
-      // Extract the last part of the IP address
-      const lastSegmentOfIP = this.deviceData.IPAddress.split('.').pop();
-
-      // Use this.deviceData for device discovery
-      try {
-        await this.callEnigma2('deviceinfo');
-        const devices = [{
-          name: 'Enigma2 Receiver IP.' + lastSegmentOfIP,
-          data: { id: this.deviceData.IPAddress },
-          settings: this.deviceData
-        }];
-        this.log("List_devices data: " + JSON.stringify(devices));
-        return devices;
-      } catch (error) {
-        throw new Error('Failed to connect to device');
-      }
+      if (!deviceData) throw new Error('No device data provided');
+      const settings = { ...deviceData };
+      await test(settings);
+      return [{
+        name: `Enigma2 Receiver IP.${settings.IPAddress.split('.').pop()}`,
+        // Retain the existing pairing ID contract.
+        data: { id: settings.IPAddress },
+        settings
+      }];
     });
-
-    session.setHandler('test_connection', async (data, callback) => {
-      try {
-        // Temporarily set deviceData for the test
-        this.deviceData = data;
-
-        // Call Enigma2 API for testing
-        await this.callEnigma2('deviceinfo');
-
-      } catch (error) {
-        throw new Error('Test connection failed');
-
-      }
-    });
-
-
-    // Add a disconnect handler if needed
+    session.setHandler('test_connection', data => test(normalizeSettings(data)));
     session.setHandler('disconnect', () => {
-      this.log("Pairing is finished (done or aborted)");
+      disconnected = true;
+      deviceData = null;
+      for (const client of clients) client.close();
+      this.log('Pairing finished');
     });
-
   }
-
-  // Method for calling the Enigma2 device
-  async callEnigma2(call_spec) {
-    try {
-      this.log("Calling Enigma2 API with: " + call_spec);
-      const portValue = this.deviceData && this.deviceData.Port ? String(this.deviceData.Port).trim() : '';
-      const portNumber = portValue ? Number(portValue) : null;
-      const port = Number.isInteger(portNumber) && portNumber > 0 ? portNumber : null;
-      const isHttps = !port || port === 443;
-      const protocol = isHttps ? 'https' : 'http';
-      const host = port ? `${this.deviceData.IPAddress}:${port}` : this.deviceData.IPAddress;
-      const url = `${protocol}://${host}/web/${call_spec}`;
-      const config = {
-        method: 'get',
-        url: url,
-        auth: this.deviceData.Username && this.deviceData.Password ? {
-          username: this.deviceData.Username,
-          password: this.deviceData.Password
-        } : undefined
-      };
-      if (isHttps) {
-        config.httpsAgent = new https.Agent({
-          rejectUnauthorized: false, // Bypass SSL certificate errors
-        });
-      }
-      this.log("Calling Enigma2 API with: " + JSON.stringify(config));
-      const response = await axios(config);
-      this.log(`Call sent to: ${url}`);
-      return response.data; // Returning the raw XML response
-    } catch (error) {
-      this.error(`Call to Enigma2 failed: ${error.message}`);
-      throw error;
-    }
-  }
-
-
-
-
-  // Additional methods as needed...
 }
 
 module.exports = Enigma2Driver;

@@ -1,809 +1,330 @@
 'use strict';
 
 const { Device } = require('homey');
-const { Image, ManagerImages } = require('homey');
-const axios = require('axios');
-const https = require('https');
+const { Enigma2Client, normalizeSettings, connectionDetails, xmlText, booleanTag, parseVolume, cancelled } = require('../../lib/enigma2');
 
-const DEFAULT_TEXT_ENCODING = 'utf-8';
-const CENTRAL_EUROPEAN_ENCODINGS = ['windows-1250', 'iso-8859-2'];
-
-function normalizeEncodingName(encoding) {
-  if (!encoding || typeof encoding !== 'string') {
-    return null;
-  }
-  const normalized = encoding.trim().toLowerCase();
-  if (normalized === 'utf8') return 'utf-8';
-  if (normalized === 'latin-1') return 'latin1';
-  if (normalized === 'cp1250' || normalized === 'windows1250') return 'windows-1250';
-  if (normalized === 'latin2') return 'iso-8859-2';
-  return normalized;
-}
-
-function extractXmlEncoding(text) {
-  if (!text) return null;
-  const match = text.match(/<\?xml[^>]*encoding=['"]([^'"]+)['"][^>]*\?>/i);
-  return match ? match[1] : null;
-}
-
-function extractCharset(contentType) {
-  if (!contentType || typeof contentType !== 'string') return null;
-  const match = contentType.match(/charset=([^;]+)/i);
-  return match ? match[1] : null;
-}
-
-function decodeBuffer(buffer, encoding) {
-  const normalized = normalizeEncodingName(encoding);
-  if (!normalized) return null;
-  if (normalized === 'utf-8') return buffer.toString('utf8');
-  if (normalized === 'latin1') return buffer.toString('latin1');
-  if (typeof TextDecoder !== 'function') return null;
-  try {
-    return new TextDecoder(normalized).decode(buffer);
-  } catch (error) {
-    return null;
-  }
-}
-
-function hasReplacementChars(text) {
-  return typeof text === 'string' && text.includes('\uFFFD');
-}
-
-const ISO6937_ACUTE = '\u00C2';
-const ISO6937_CARON = '\u010E';
-const ISO6937_RING = '\u0118';
-const ISO6937_ACUTE_MAP = {
-  A: '\u00C1',
-  E: '\u00C9',
-  I: '\u00CD',
-  O: '\u00D3',
-  U: '\u00DA',
-  Y: '\u00DD',
-  a: '\u00E1',
-  e: '\u00E9',
-  i: '\u00ED',
-  o: '\u00F3',
-  u: '\u00FA',
-  y: '\u00FD',
-  C: '\u0106',
-  c: '\u0107',
-  N: '\u0143',
-  n: '\u0144',
-  R: '\u0154',
-  r: '\u0155',
-  S: '\u015A',
-  s: '\u015B',
-  Z: '\u0179',
-  z: '\u017A'
-};
-const ISO6937_CARON_MAP = {
-  C: '\u010C',
-  D: '\u010E',
-  E: '\u011A',
-  L: '\u013D',
-  N: '\u0147',
-  R: '\u0158',
-  S: '\u0160',
-  T: '\u0164',
-  Z: '\u017D',
-  c: '\u010D',
-  d: '\u010F',
-  e: '\u011B',
-  l: '\u013E',
-  n: '\u0148',
-  r: '\u0159',
-  s: '\u0161',
-  t: '\u0165',
-  z: '\u017E'
-};
-const ISO6937_RING_MAP = {
-  U: '\u016E',
-  u: '\u016F'
-};
-
-function decodeIso6937(text) {
-  if (!text) return text;
-  let output = '';
-  for (let index = 0; index < text.length; index += 1) {
-    const char = text[index];
-    if (char === ISO6937_ACUTE) {
-      const nextChar = text[index + 1];
-      if (nextChar && ISO6937_ACUTE_MAP[nextChar]) {
-        output += ISO6937_ACUTE_MAP[nextChar];
-        index += 1;
-        continue;
-      }
-    }
-    if (char === ISO6937_CARON) {
-      const nextChar = text[index + 1];
-      if (nextChar && ISO6937_CARON_MAP[nextChar]) {
-        output += ISO6937_CARON_MAP[nextChar];
-        index += 1;
-        continue;
-      }
-    }
-    if (char === ISO6937_RING) {
-      const nextChar = text[index + 1];
-      if (nextChar && ISO6937_RING_MAP[nextChar]) {
-        output += ISO6937_RING_MAP[nextChar];
-        index += 1;
-        continue;
-      }
-    }
-    output += char;
-  }
-  return output;
-}
-
-function decodeEnigma2Response(buffer, contentType) {
-  if (!Buffer.isBuffer(buffer)) {
-    return buffer;
-  }
-
-  const asciiText = buffer.toString('latin1');
-  const xmlEncoding = normalizeEncodingName(extractXmlEncoding(asciiText));
-  const headerEncoding = normalizeEncodingName(extractCharset(contentType));
-  const preferredEncodings = [];
-
-  if (headerEncoding) preferredEncodings.push(headerEncoding);
-  if (xmlEncoding) preferredEncodings.push(xmlEncoding);
-
-  for (const encoding of preferredEncodings) {
-    const decoded = decodeBuffer(buffer, encoding);
-    if (decoded && !hasReplacementChars(decoded)) {
-      return decodeIso6937(decoded);
-    }
-  }
-
-  const utf8Decoded = decodeBuffer(buffer, DEFAULT_TEXT_ENCODING);
-  if (utf8Decoded && !hasReplacementChars(utf8Decoded)) {
-    return decodeIso6937(utf8Decoded);
-  }
-
-  for (const encoding of CENTRAL_EUROPEAN_ENCODINGS) {
-    const decoded = decodeBuffer(buffer, encoding);
-    if (decoded) {
-      return decodeIso6937(decoded);
-    }
-  }
-
-  return decodeIso6937(buffer.toString(DEFAULT_TEXT_ENCODING));
-}
-
-function parseDeviceInfo(xml) {
-  const getValue = (tag) => {
-    const openTag = `<${tag}>`;
-    const closeTag = `</${tag}>`;
-    const start = xml.indexOf(openTag) + openTag.length;
-    const end = xml.indexOf(closeTag);
-    return start < openTag.length || end === -1 ? null : xml.substring(start, end);
-  };
-
-  return {
-    oeVersion: getValue('e2oeversion'),
-    enigmaVersion: getValue('e2enigmaversion'),
-    distroVersion: getValue('e2distroversion'),
-    imageVersion: getValue('e2imageversion'),
-    driverDate: getValue('e2driverdate'),
-    webifVersion: getValue('e2webifversion'),
-    fpVersion: getValue('e2fpversion'),
-    deviceName: getValue('e2devicename'),
-    // Additional fields can be parsed in a similar manner...
-  };
-}
-
-class enigma2_device extends Device {
-
+class Enigma2Device extends Device {
   async onInit() {
-    this.log('--enigma2 device --');
-
+    if (this.client) await this.onUninit();
+    this.stopped = false;
+    this.queue = Promise.resolve();
     this.availabilityInitialized = false;
-    this.deviceUnavailableTrigger = null;
-    this.deviceAvailableTrigger = null;
-
-    this.albumArtImage = await this.homey.images.createImage();
-
-    // Initialize device settings
     const settings = this.getSettings();
-    this.updateSettings(settings);
-
-    // Initialize previous states cache
-    this.previousStates = {
-      volume: null,
-      isMuted: null,
-      serviceName: null,
-      eventTitle: null,
-      serviceReference: null
-    };
-
-    // get device info on init
-    try {
-      const deviceInfoXml = await this.callEnigma2('deviceinfo');
-      const deviceInfo = parseDeviceInfo(deviceInfoXml);
-      this.log('Device Info:', deviceInfo);
-    } catch (error) {
-      this.error('Failed to get device info:', error);
-    }
-
-    // Register flow cards
+    const poll = Number(settings.PollInterval);
+    // Older versions accepted out-of-range stored intervals and clamped them at runtime.
+    this.updateSettings({ ...settings, PollInterval: Number.isInteger(poll) ? Math.min(60, Math.max(5, poll)) : 5 });
     this.registerFlowCards();
-
-    // Register capability listeners
-    this.registerCapabilityListener('onoff', this.onCapabilityOnOff.bind(this));
-
-    // Capability listener for setting volume
-    this.registerCapabilityListener('volume_set', async (value) => {
-      const callSpec = `vol?set=set${Math.round(value * 100)}`; // Assuming volume value is between 0 and 1
-      return this.executeEnigma2Command(callSpec);
-    });
-    // Capability listener for muting/unmuting volume
-    this.registerCapabilityListener('volume_mute', async (value) => {
-      if (value) {
-        // Check if currently unmuted before sending mute command
-        await this.handleMuteToggle();
-      } else {
-        // Check if currently muted before sending mute command
-        await this.handleMuteToggle();
-      }
-    });
-
-    // Register capability listeners for volume up and down
-    this.registerCapabilityListener('volume_up', this.onVolumeUp.bind(this));
-    this.registerCapabilityListener('volume_down', this.onVolumeDown.bind(this));
-
-    // Register capability listeners for channel up and down
-    this.registerCapabilityListener('channel_up', this.onChannelUp.bind(this));
-    this.registerCapabilityListener('channel_down', this.onChannelDown.bind(this));
-
-    this.registerCapabilityListener('speaker_next', this.onSpeakerNext.bind(this));
-    this.registerCapabilityListener('speaker_prev', this.onSpeakerPrev.bind(this));
-
-    await this.updateAvailability(false); // Initially mark the device as unavailable
-
-    // Add listener for speaker_playing
-    this.registerCapabilityListener('speaker_playing', this.onSpeakerPlayingChanged.bind(this));
-
-
-    // Start polling
+    if (!this.listenersRegistered) {
+      this.registerCapabilityListener('onoff', this.onCapabilityOnOff.bind(this));
+      this.registerCapabilityListener('volume_set', value => {
+        if (!Number.isFinite(value) || value < 0 || value > 1) throw new Error('Invalid volume');
+        return this.executeEnigma2Command(`vol?set=set${Math.round(value * 100)}`);
+      });
+      this.registerCapabilityListener('volume_mute', value => this.setMuted(value));
+      this.registerCapabilityListener('volume_up', this.onVolumeUp.bind(this));
+      this.registerCapabilityListener('volume_down', this.onVolumeDown.bind(this));
+      this.registerCapabilityListener('channel_up', this.onChannelUp.bind(this));
+      this.registerCapabilityListener('channel_down', this.onChannelDown.bind(this));
+      this.registerCapabilityListener('speaker_next', this.onSpeakerNext.bind(this));
+      this.registerCapabilityListener('speaker_prev', this.onSpeakerPrev.bind(this));
+      this.registerCapabilityListener('speaker_playing', this.onSpeakerPlayingChanged.bind(this));
+      this.listenersRegistered = true;
+    }
+    try {
+      this.albumArtImage = await this.homey.images.createImage();
+    } catch (error) {
+      this.error('Could not create album art image:', error.message);
+    }
+    // Device information is diagnostic; it must not hold up capability registration or onInit.
+    this.enqueue(async context => {
+      const xml = await context.client.call('deviceinfo');
+      this.assertCurrent(context);
+      this.log('Device info:', {
+        deviceName: xmlText(xml, 'e2devicename'),
+        enigmaVersion: xmlText(xml, 'e2enigmaversion'),
+        webifVersion: xmlText(xml, 'e2webifversion')
+      });
+    }).catch(error => this.logOperationError('Device information', error));
     this.startPolling();
-
   }
-  async pollPowerState() {
-    try {
-      const isStandby = await this.checkStandbyState();
-      const isOn = !isStandby;
 
-      await this.updateAvailability(true); // Device is back online
+  enqueue(operation) {
+    const context = { client: this.client, revision: this.revision };
+    const run = (this.queue || Promise.resolve()).then(async () => {
+      this.assertCurrent(context);
+      return operation(context);
+    });
+    this.queue = run.catch(() => {});
+    return run;
+  }
 
-      await this.setCapabilityValue('onoff', isOn);
+  assertCurrent(context) {
+    if (this.stopped || context.revision !== this.revision || context.client.closed) throw cancelled();
+  }
 
-      if (isOn) {
-        await this.updateCurrentPlayingInfo();
-      } else {
-        // Set the speaker labels to "off" and other related states when the device is off
-        await this.setCapabilityValue('speaker_artist', '');
-        await this.setCapabilityValue('speaker_track', '');
-        await this.setCapabilityValue('speaker_playing', false);
-        await this.setCapabilityValue('speaker_position', 0); // Set position to 0
-        await this.setCapabilityValue('speaker_duration', 0); // Set duration to 0
-        this.log('Device is off. Resetting speaker info.');
-      }
-      return isOn;
-    } catch (error) {
-      await this.updateAvailability(false); // Set unavailable if there's an error
-      this.error('Device is offline:', error);
-      return false;
+  async setValue(context, capability, value) {
+    this.assertCurrent(context);
+    if (this.hasCapability(capability) && this.getCapabilityValue(capability) !== value) {
+      await this.setCapabilityValue(capability, value);
     }
   }
 
-  startPolling() {
-    this.pollingInterval = setInterval(async () => {
-      try {
-        const isDeviceOn = await this.pollPowerState(); // Check power state
-        if (isDeviceOn) {
-          await this.pollVolumeState(); // Poll volume state only if device is on
-        }
-      } catch (error) {
-        this.error('Error during polling:', error);
-      }
-    }, this.pollingIntervalMs || 5000); // Poll every 5 seconds by default
-  }
-
-  async pollVolumeState() {
-    try {
-      // Check if the device is marked as available before attempting to poll
-      if (this.getAvailable()) {
-        const volumeData = await this.callEnigma2('vol');
-
-        // Parse the volume data
-        const volume = parseInt(volumeData.match(/<e2current>(\d+)<\/e2current>/)[1], 10);
-        const isMuted = volumeData.match(/<e2ismuted>(.*?)<\/e2ismuted>/)[1].trim() === 'True';
-
-        // Update the volume_set and volume_mute capabilities if there's a change
-        if (this.previousStates.volume !== volume || this.previousStates.isMuted !== isMuted) {
-          await this.setCapabilityValue('volume_set', volume / 100);
-          await this.setCapabilityValue('volume_mute', isMuted);
-
-          // Update the cached state
-          this.previousStates.volume = volume;
-          this.previousStates.isMuted = isMuted;
-        }
-      }
-    } catch (error) {
-      // If an error occurs (e.g., network issue), mark the device as unavailable
-      await this.updateAvailability(false).catch(this.error);
-      this.error('Error polling volume state:', error);
-    }
-  }
-
-
-
-  /**
-   * onAdded is called when the user adds the device, called just after pairing.
-   */
-  async onAdded() {
-    this.log('enigma2 device has been added');
-    // Retrieve device-specific settings
-    const settings = this.getSettings();
-    this.updateSettings(settings);
-
-    this.registerFlowCards();
-
+  logOperationError(operation, error) {
+    if (error.code !== 'ERR_CANCELED') this.error(`${operation} failed:`, error.message);
   }
 
   updateSettings(settings) {
-    const portValue = settings.Port !== undefined && settings.Port !== null ? String(settings.Port).trim() : '';
-    const portNumber = portValue ? Number(portValue) : null;
-    const port = Number.isInteger(portNumber) && portNumber > 0 ? portNumber : null;
-    const pollValue = settings.PollInterval !== undefined && settings.PollInterval !== null ? String(settings.PollInterval).trim() : '';
-    const pollNumber = pollValue ? Number(pollValue) : null;
-    const pollSeconds = Number.isInteger(pollNumber) ? Math.min(Math.max(pollNumber, 5), 60) : 5;
-    this.pollingIntervalMs = pollSeconds * 1000;
-    this.deviceData = {
-      ipAddress: settings.IPAddress,
-      port: port,
-      username: settings.Username,
-      password: settings.Password
-    };
+    const normalized = normalizeSettings(settings);
+    this.stopPolling();
+    if (this.client) this.client.close();
+    this.revision = (this.revision || 0) + 1;
+    this.connectionSettings = normalized;
+    this.pollingIntervalMs = normalized.PollInterval * 1000;
+    this.client = new Enigma2Client(normalized);
+    this.previousStates = { serviceReference: null };
+    this.playbackOverride = null;
+    this.playbackService = null;
   }
 
-  async onSettings({ oldSettings, newSettings, changedKeys }) {
-    this.log('enigma2 device settings were changed');
-    if (changedKeys.some(key => ['IPAddress', 'Port', 'Username', 'Password', 'PollInterval'].includes(key))) {
-      this.updateSettings(newSettings);
-      // Add any additional logic needed when settings change
-    }
-    if (changedKeys.includes('PollInterval')) {
-      clearInterval(this.pollingInterval);
-      this.startPolling();
-    }
-
+  async onSettings({ newSettings }) {
+    // Validate before cancelling work or changing the live connection.
+    normalizeSettings(newSettings);
+    this.updateSettings(newSettings);
+    this.startPolling();
+    this.log('Receiver connection settings updated');
   }
 
-  /**
-   * onRenamed is called when the user updates the device's name.
-   * This method can be used this to synchronise the name to the device.
-   * @param {string} name The new name
-   */
-  async onRenamed(name) {
-    this.log('enigma2 device was renamed');
+  async onAdded() {
+    this.log('Enigma2 device added');
   }
 
-  /**
-   * onDeleted is called when the user deleted the device.
-   */
-  async onDeleted() {
-    clearInterval(this.pollingInterval); // Stop the interval
-    this.log('enigma2 device has been deleted');
+  async onRenamed() {
+    this.log('Enigma2 device renamed');
   }
 
-  // Helper method to execute Enigma2 command
-  async executeEnigma2Command(callSpec) {
-    try {
-      const response = await this.callEnigma2(callSpec);
-      this.log(`Enigma2 command executed: ${callSpec}`);
-      return response; // Return full response
-    } catch (error) {
-      this.error(`Failed to execute Enigma2 command: ${error.message}`);
-      return false;
-    }
+  stopPolling() {
+    this.pollGeneration = (this.pollGeneration || 0) + 1;
+    if (this.pollingTimer) clearTimeout(this.pollingTimer);
+    this.pollingTimer = null;
   }
 
-  getConnectionDetails() {
-    const port = this.deviceData && this.deviceData.port ? this.deviceData.port : null;
-    const isHttps = !port || port === 443;
-    const protocol = isHttps ? 'https' : 'http';
-    const host = port ? `${this.deviceData.ipAddress}:${port}` : this.deviceData.ipAddress;
-    return { protocol, host, isHttps };
-  }
-
-  async callEnigma2(call_spec) {
-    try {
-      //DEBUG
-      //this.log("Calling Enigma2 API with: " + call_spec);
-      const { protocol, host, isHttps } = this.getConnectionDetails();
-      const url = `${protocol}://${host}/web/${call_spec}`;
-      const config = {
-        method: 'get',
-        url: url,
-        auth: this.deviceData.username && this.deviceData.password ? {
-          username: this.deviceData.username,
-          password: this.deviceData.password
-        } : undefined
-      };
-      if (isHttps) {
-        config.httpsAgent = new https.Agent({
-          rejectUnauthorized: false  // Bypass SSL certificate errors
+  startPolling() {
+    this.stopPolling();
+    const generation = this.pollGeneration;
+    const poll = async () => {
+      if (this.stopped || generation !== this.pollGeneration) return;
+      try {
+        await this.enqueue(async context => {
+          try {
+            const isOn = await this.pollPowerState(context);
+            if (isOn) {
+              await this.pollVolumeState(context);
+              await this.updateCurrentPlayingInfo(context);
+            }
+            this.assertCurrent(context);
+            await this.updateAvailability(true);
+          } catch (error) {
+            this.assertCurrent(context);
+            await this.updateAvailability(false);
+            throw error;
+          }
         });
+      } catch (error) {
+        this.logOperationError('Polling', error);
+      } finally {
+        if (!this.stopped && generation === this.pollGeneration) {
+          this.pollingTimer = setTimeout(poll, this.pollingIntervalMs);
+        }
       }
-      config.responseType = 'arraybuffer';
-      config.transformResponse = (data) => data;
-      //DEBUG
-      //this.log("Calling Enigma2 API with: " + JSON.stringify(config));
-      const response = await axios(config);
-      this.log(`Call sent to: ${url}`);
-      // DEBUG
-      //   this.log("API Response:", response.data); // Log the API response
-      const responseBuffer = Buffer.isBuffer(response.data)
-        ? response.data
-        : Buffer.from(response.data);
-      return decodeEnigma2Response(
-        responseBuffer,
-        response.headers && response.headers['content-type']
-      );
+    };
+    void poll();
+  }
 
-    } catch (error) {
-      this.error(`Call to Enigma2 failed: ${error.message}`);
-      throw error;
+  async pollPowerState(context) {
+    if (!context) return this.enqueue(current => this.pollPowerState(current));
+    const isOn = !booleanTag(await context.client.call('powerstate'), 'e2instandby');
+    await this.setValue(context, 'onoff', isOn);
+    if (!isOn) {
+      this.playbackOverride = null;
+      await this.clearPlayingInfo(context);
+      this.previousStates.serviceReference = null;
+    }
+    return isOn;
+  }
+
+  async pollVolumeState(context) {
+    if (!context) return this.enqueue(current => this.pollVolumeState(current));
+    await this.applyVolume(context, await context.client.call('vol'));
+  }
+
+  async applyVolume(context, xml) {
+    const state = parseVolume(xml);
+    await this.setValue(context, 'volume_set', state.volume / 100);
+    await this.setValue(context, 'volume_mute', state.isMuted);
+  }
+
+  async clearPlayingInfo(context) {
+    for (const [capability, value] of Object.entries({ speaker_artist: '', speaker_track: '', speaker_playing: false, speaker_position: 0, speaker_duration: 0 })) {
+      await this.setValue(context, capability, value);
+    }
+  }
+
+  async updateCurrentPlayingInfo(context) {
+    if (!context) return this.enqueue(current => this.updateCurrentPlayingInfo(current));
+    const xml = await context.client.call('getcurrent');
+    this.assertCurrent(context);
+    const serviceName = xmlText(xml, 'e2servicename') || '';
+    const reference = xmlText(xml, 'e2servicereference');
+    const service = reference || serviceName;
+    if (this.playbackService !== service) this.playbackOverride = null;
+    this.playbackService = service;
+    // Restrict EPG fields to the first event, so absent current data cannot select the next show.
+    const eventMatch = xml.match(/<e2event\b[^>]*>([\s\S]*?)<\/e2event>/i);
+    const event = eventMatch ? eventMatch[1] : '';
+    const title = xmlText(event, 'e2eventtitle') || '';
+    const rawDuration = Number(xmlText(event, 'e2eventduration'));
+    const duration = Number.isFinite(rawDuration) && rawDuration > 0 ? rawDuration : 0;
+    const remainingText = xmlText(event, 'e2eventremaining');
+    const remaining = Number(remainingText);
+    const elapsed = duration && remainingText !== null && Number.isFinite(remaining) ? Math.min(duration, Math.max(0, duration - remaining)) : 0;
+    const percent = duration ? Math.round(elapsed / duration * 100) : 0;
+    await this.setValue(context, 'speaker_artist', serviceName ? `${serviceName} (${percent}%)` : '');
+    await this.setValue(context, 'speaker_track', title);
+    await this.setValue(context, 'speaker_playing', Boolean(serviceName) && this.playbackOverride !== false);
+    // Preserve the integration's existing minute-based display contract.
+    await this.setValue(context, 'speaker_duration', Number((duration / 60).toFixed(1)));
+    await this.setValue(context, 'speaker_position', Number((elapsed / 60).toFixed(1)));
+    if (reference && this.albumArtImage && reference !== this.previousStates.serviceReference) {
+      const filename = encodeURIComponent(reference.replace(/:/g, '_').replace(/_$/, ''));
+      try {
+        this.albumArtImage.setStream(async stream => {
+          try {
+            this.assertCurrent(context);
+            await context.client.request(`/picon/${filename}.png`, stream);
+          } catch (error) {
+            this.logOperationError('Album art download', error);
+            throw error;
+          }
+        });
+        await this.setAlbumArtImage(this.albumArtImage);
+        await this.albumArtImage.update();
+        this.assertCurrent(context);
+        this.previousStates.serviceReference = reference;
+      } catch (error) {
+        this.logOperationError('Album art update', error);
+      }
     }
   }
 
   registerFlowCards() {
-    // Command Send Action
-    this.registerFlowCardAction('command_send_device', (args) => `remotecontrol?command=${args.command}`);
-
-    // Message Send Action
-    this.registerFlowCardAction('message_send_device', (args) => {
-      const message_complete = args.msg_text_full;
-      const message_split = message_complete.split("|");
-      const msg_type = message_split[0];
-      const timeout = message_split[1];
-      const msg_txt = message_split[2];
-      const msg_timeout = timeout === 0 ? "" : timeout;
-      return `message?text=${msg_txt}&type=${msg_type}&timeout=${msg_timeout}`;
-    });
-
-    // Powerstate Deep Standby Action
-    this.registerFlowCardAction('powerstate_deepstandby_device', () => 'powerstate?newstate=1');
-
-    // Powerstate Reboot Action
-    this.registerFlowCardAction('powerstate_reboot_device', () => 'powerstate?newstate=2');
-
-    // Restart Enigma2 Action
-    this.registerFlowCardAction('powerstate_restart_enigma2_device', () => 'powerstate?newstate=3');
-
-    // Powerstate On Action
-    this.registerFlowCardAction('powerstate_on_device', () => 'powerstate?newstate=4');
-
-    // Powerstate Off Action
-    this.registerFlowCardAction('powerstate_off_device', () => 'powerstate?newstate=5');
-
-    // Volume Set Action
-    this.registerFlowCardAction('vol_set', (args) => `vol?set=set${args.volume}`);
-
-    // Volume Mute Flow Card Action
-    this.registerFlowCardAction('vol_mute', async () => {
-      await this.handleMuteToggle();
-      return true; // Indicate successful execution of the flow card action
-    });
-
-    // Volume Unmute Flow Card Action
-    this.registerFlowCardAction('vol_unmute', async () => {
-      await this.handleMuteToggle();
-      return true; // Indicate successful execution of the flow card action
-    });
-
-    // Checking state of Enigma2
-    this.registerConditionFlowCard('is_standby_on');
-
+    // Action/condition listeners are registered once by the app and dispatch through args.device.
     this.deviceUnavailableTrigger = this.homey.flow.getDeviceTriggerCard('device_unavailable');
     this.deviceAvailableTrigger = this.homey.flow.getDeviceTriggerCard('device_available');
   }
 
-  registerFlowCardAction(cardName, getCallSpec) {
-    const actionCard = this.homey.flow.getActionCard(cardName);
-    actionCard.registerRunListener(async (args) => {
-      const callSpec = await getCallSpec(args);
-      if (typeof callSpec !== 'string') {
-        return callSpec;
-      }
-      return this.executeEnigma2Command(callSpec);
-    });
-  }
-
-  async checkStandbyState() {
-    try {
-      const response = await this.callEnigma2('powerstate');
-      //DEBUG
-      //this.log('Response from Enigma2:', response);
-
-      if (!response) {
-        this.error('Invalid response from Enigma2 or no response found');
-        return false;
-      }
-
-      // Directly use `response` to match the regular expression
-      const match = response.match(/<e2instandby>\s*(true|false)\s*<\/e2instandby>/);
-      const isStandby = match ? match[1].trim() === 'true' : false;
-
-      this.log(isStandby ? 'Enigma2 is currently in standby mode.' : 'Enigma2 is currently active (not in standby mode).');
-      return isStandby;
-    } catch (error) {
-      throw new Error('Device might be offline'); // Throw to be caught in pollPowerState
-    }
-  }
-
-  registerConditionFlowCard(cardName) {
-    const conditionCard = this.homey.flow.getConditionCard(cardName);
-    conditionCard.registerRunListener(async (args) => {
-      const isStandby = await this.checkStandbyState();
-      return (cardName === 'is_standby_on') ? isStandby : !isStandby;
-    });
-  }
-
   async updateAvailability(isAvailable) {
     const wasAvailable = this.getAvailable();
-
-    if (!this.availabilityInitialized) {
-      this.availabilityInitialized = true;
-      if (isAvailable) {
-        if (!wasAvailable) {
-          await this.setAvailable();
-        }
-      } else if (wasAvailable) {
-        await this.setUnavailable();
-      }
-      return;
+    const initialized = this.availabilityInitialized;
+    if (isAvailable !== wasAvailable) {
+      if (isAvailable) await this.setAvailable();
+      else await this.setUnavailable();
     }
-
-    if (isAvailable) {
-      if (!wasAvailable) {
-        await this.setAvailable();
-        if (this.deviceAvailableTrigger) {
-          await this.deviceAvailableTrigger.trigger(this, {}, {});
-        }
-      }
-      return;
-    }
-
-    if (wasAvailable) {
-      await this.setUnavailable();
-      if (this.deviceUnavailableTrigger) {
-        await this.deviceUnavailableTrigger.trigger(this, {}, {});
+    this.availabilityInitialized = true;
+    if (initialized && isAvailable !== wasAvailable) {
+      const trigger = isAvailable ? this.deviceAvailableTrigger : this.deviceUnavailableTrigger;
+      try {
+        if (trigger) await trigger.trigger(this, {}, {});
+      } catch (error) {
+        this.logOperationError('Availability Flow trigger', error);
       }
     }
   }
 
-  // Implement the onCapabilityOnOff method using the helper
-  async onCapabilityOnOff(value, opts) {
-    const newState = value ? 4 : 5; // 4 for on, 5 for off
-    const callSpec = `powerstate?newstate=${newState}`;
-    return this.executeEnigma2Command(callSpec);
+  async executeEnigma2Command(spec) {
+    return this.enqueue(async context => {
+      const xml = await context.client.call(spec);
+      this.assertCurrent(context);
+      if (spec.split('?')[0] === 'vol') await this.applyVolume(context, xml);
+      this.log('Enigma2 command accepted:', spec.split('?')[0]);
+      return xml;
+    });
   }
 
-
-  async onVolumeUp() {
-    const volumeIncreaseCommand = 'vol?set=up';
-    const response = await this.callEnigma2(volumeIncreaseCommand);
-    if (response) {
-      const match = response.match(/<e2current>(\d+)<\/e2current>/);
-      if (match && match[1]) {
-        const newVolume = parseInt(match[1], 10);
-        this.log(`Volume up result: ${newVolume}`);
-        await this.setCapabilityValue('volume_set', newVolume / 100);
-      }
-    }
+  callEnigma2(spec) {
+    return this.enqueue(context => context.client.call(spec));
   }
 
-  async onVolumeDown() {
-    const volumeDecreaseCommand = 'vol?set=down';
-    const response = await this.callEnigma2(volumeDecreaseCommand);
-    if (response) {
-      const match = response.match(/<e2current>(\d+)<\/e2current>/);
-      if (match && match[1]) {
-        const newVolume = parseInt(match[1], 10);
-        this.log(`Volume down result: ${newVolume}`);
-        await this.setCapabilityValue('volume_set', newVolume / 100);
-      }
-    }
+  getConnectionDetails() {
+    return connectionDetails(this.connectionSettings);
   }
 
-  async onChannelUp() {
-    const channelUpCommand = 'remotecontrol?command=402'; // Command for channel up
-    const result = await this.executeEnigma2Command(channelUpCommand);
-    if (result) {
-      await this.updateCurrentPlayingInfo();
-    }
-    return result;
+  checkStandbyState() {
+    return this.enqueue(async context => booleanTag(await context.client.call('powerstate'), 'e2instandby'));
   }
 
-  async onChannelDown() {
-    const channelDownCommand = 'remotecontrol?command=403'; // Command for channel down
-    const result = await this.executeEnigma2Command(channelDownCommand);
-    if (result) {
-      await this.updateCurrentPlayingInfo();
-    }
-    return result;
+  setMuted(value) {
+    return this.enqueue(async context => {
+      await this.applyVolume(context, await context.client.setMuted(value));
+      return true;
+    });
   }
 
-  async onSpeakerNext() {
-    // Check if the device is currently off
-    const isDeviceOff = !await this.getCapabilityValue('onoff');
-    if (isDeviceOff) {
-      this.log('Device is off. Skipping next channel command.');
-      return false; // Indicate that the operation was not performed
-    }
-
-    // If the device is on, proceed with the next channel command
-    const nextCommand = 'remotecontrol?command=402'; // Command for channel up
-    const result = await this.executeEnigma2Command(nextCommand);
-    if (result) {
-      await this.updateCurrentPlayingInfo();
-    }
-    return result;
+  // Retain the explicit toggle helper for callers that intentionally request a toggle.
+  handleMuteToggle() {
+    return this.executeEnigma2Command('vol?set=mute');
   }
 
-  async onSpeakerPrev() {
-    // Check if the device is currently off
-    const isDeviceOff = !await this.getCapabilityValue('onoff');
-    if (isDeviceOff) {
-      this.log('Device is off. Skipping previous channel command.');
-      return false; // Indicate that the operation was not performed
-    }
-
-    // If the device is on, proceed with the previous channel command
-    const prevCommand = 'remotecontrol?command=403'; // Command for channel down
-    const result = await this.executeEnigma2Command(prevCommand);
-    if (result) {
-      await this.updateCurrentPlayingInfo();
-    }
-    return result;
+  onCapabilityOnOff(value) {
+    return this.executeEnigma2Command(`powerstate?newstate=${value ? 4 : 5}`);
   }
 
+  onVolumeUp() { return this.executeEnigma2Command('vol?set=up'); }
+  onVolumeDown() { return this.executeEnigma2Command('vol?set=down'); }
 
-  async updateCurrentPlayingInfo() {
-    try {
-      const response = await this.callEnigma2('getcurrent');
-      // Parse the XML response to get service name, event title, and service reference
-      const serviceNameMatch = response.match(/<e2servicename>(.*?)<\/e2servicename>/);
-      const eventTitleMatch = response.match(/<e2eventtitle>(.*?)<\/e2eventtitle>/);
-      const serviceReferenceMatch = response.match(/<e2servicereference>(.*?)<\/e2servicereference>/);
-      const durationMatch = response.match(/<e2eventduration>(\d+)<\/e2eventduration>/);
-      const remainingMatch = response.match(/<e2eventremaining>(\d+)<\/e2eventremaining>/);
+  changeChannel(command, requireOn) {
+    return this.enqueue(async context => {
+      if (requireOn && booleanTag(await context.client.call('powerstate'), 'e2instandby')) throw new Error('Receiver is in standby');
+      const result = await context.client.call(`remotecontrol?command=${command}`);
+      this.assertCurrent(context);
+      this.playbackOverride = null;
+      await this.updateCurrentPlayingInfo(context);
+      return result;
+    });
+  }
 
-      if (durationMatch) {
-        const totalDuration = parseInt(durationMatch[1], 10);
-        const durationTime = parseFloat((totalDuration / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
-        await this.setCapabilityValue("speaker_duration", durationTime);
-      }
+  onChannelUp() { return this.changeChannel(402, false); }
+  onChannelDown() { return this.changeChannel(403, false); }
+  onSpeakerNext() { return this.changeChannel(402, true); }
+  onSpeakerPrev() { return this.changeChannel(403, true); }
 
-      let serviceName, eventTitle, serviceReference;
-      let totalDuration = 0;
-      let remainingTime = 0;
-      let percentageCompleted = 0;
-      let isPlaying = false;
+  onSpeakerPlayingChanged(playing) {
+    return this.enqueue(async context => {
+      const standby = booleanTag(await context.client.call('powerstate'), 'e2instandby');
+      if (standby && playing) await context.client.call('powerstate?newstate=4');
+      else if (!standby) await context.client.call(`remotecontrol?command=${playing ? 207 : 119}`);
+      this.assertCurrent(context);
+      this.playbackOverride = playing;
+      return true;
+    });
+  }
 
-      if (remainingMatch && durationMatch) {
-        totalDuration = parseInt(durationMatch[1], 10);
-        remainingTime = parseInt(remainingMatch[1], 10);
-        percentageCompleted = ((totalDuration - remainingTime) / totalDuration) * 100;
-        const currentPosition = parseFloat(((totalDuration - remainingTime) / 60).toFixed(1)); // Convert seconds to minutes and round to 1 decimal place
-        await this.setCapabilityValue("speaker_position", currentPosition);
-      }
-
-
-      if (serviceNameMatch && eventTitleMatch) {
-        serviceName = `${serviceNameMatch[1]} (${percentageCompleted.toFixed(0)}%)`;
-        eventTitle = eventTitleMatch[1];
-        isPlaying = eventTitle != null; // Playing if eventTitle is not null
-
-        // Update capabilities if there's a change
-        if (this.previousStates.serviceName !== serviceName ||
-          this.previousStates.eventTitle !== eventTitle) {
-          this.log('TV channel :', serviceName);
-          this.log('Show:', eventTitle);
-          await this.setCapabilityValue('speaker_artist', serviceName);
-          await this.setCapabilityValue('speaker_track', eventTitle);
-
-          // Update speaker_playing capability
-          await this.setCapabilityValue('speaker_playing', isPlaying);
-
-          // Update cache
-          this.previousStates.serviceName = serviceName;
-          this.previousStates.eventTitle = eventTitle;
-        }
-      }
-
-      if (serviceReferenceMatch) {
-        serviceReference = serviceReferenceMatch[1].replace(/:/g, '_').replace(/_$/, '');
-        if (this.previousStates.serviceReference !== serviceReference) {
-          const { protocol, host, isHttps } = this.getConnectionDetails();
-          const albumArtUrl = `${protocol}://${host}/picon/${serviceReference}.png`;
-
-          try {
-            // Set the album art using a stream
-            this.albumArtImage.setStream(async (stream) => {
-              const instanceConfig = {};
-              if (isHttps) {
-                instanceConfig.httpsAgent = new https.Agent({
-                  rejectUnauthorized: false // Bypass SSL certificate errors
-                });
-              }
-              const instance = axios.create(instanceConfig);
-
-              if (this.deviceData.username && this.deviceData.password) {
-                instance.defaults.auth = {
-                  username: this.deviceData.username,
-                  password: this.deviceData.password
-                };
-              }
-
-              const response = await instance.get(albumArtUrl, {
-                responseType: 'stream'
-              });
-              response.data.pipe(stream);
-            });
-
-            this.setAlbumArtImage(this.albumArtImage);
-            await this.albumArtImage.update();
-            this.log('Album art image updated:', albumArtUrl);
-
-            // Update cache
-            this.previousStates.serviceReference = serviceReference;
-          } catch (error) {
-            this.error('Failed to update album art:', error);
-          }
-        }
-      }
-    } catch (error) {
-      this.error('Failed to update current playing info:', error);
+  async onUninit() {
+    this.stopped = true;
+    this.stopPolling();
+    this.revision = (this.revision || 0) + 1;
+    if (this.client) this.client.close();
+    if (this.queue) await this.queue;
+    if (this.albumArtImage) {
+      try { await this.albumArtImage.unregister(); }
+      catch (error) { this.logOperationError('Album art cleanup', error); }
+      this.albumArtImage = null;
     }
   }
 
-
-
-  // Mute toggle handling
-  async handleMuteToggle() {
-    const response = await this.executeEnigma2Command('vol?set=mute');
-    if (response) {
-      const isMutedMatch = response.match(/<e2ismuted>(.*?)<\/e2ismuted>/);
-      if (isMutedMatch) {
-        const isMuted = isMutedMatch[1].trim() === 'True';
-        this.log(`Mute state is now: ${isMuted}`);
-        await this.setCapabilityValue('volume_mute', isMuted);
-      }
-    }
+  async onDeleted() {
+    await this.onUninit();
+    this.log('Enigma2 device deleted');
   }
-
-  async onSpeakerPlayingChanged(playing) {
-    // Check if the device is currently off
-    const isDeviceOff = !await this.getCapabilityValue('onoff');
-
-    if (isDeviceOff && playing) {
-      // Device is off and needs to be turned on for playing
-      this.log('Device is off. Turning on the device.');
-      await this.executeEnigma2Command('powerstate?newstate=4'); // Command to turn on the device
-      // No need to send the play command as the device starts playing automatically when turned on
-      return true; // Return true indicating successful execution
-    } else if (!isDeviceOff) {
-      // Device is already on, send the appropriate play or pause command
-      let command = playing ? 207 : 119; // 207 for play, 119 for pause
-      this.log(`Sending command ${command} to device.`);
-      return this.executeEnigma2Command(`remotecontrol?command=${command}`);
-    }
-  }
-
-
 }
 
-module.exports = enigma2_device;
+module.exports = Enigma2Device;
